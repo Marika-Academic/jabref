@@ -7,6 +7,7 @@
 <?import javafx.scene.control.TextField?>
 <?import javafx.scene.control.TitledPane?>
 <?import javafx.scene.layout.FlowPane?>
+<?import javafx.scene.layout.VBox?>
 <DialogPane xmlns:fx="http://javafx.com/fxml/1" prefWidth="600" xmlns="http://javafx.com/javafx/8.0.171"
             fx:controller="org.jabref.gui.newentryunified.NewEntryUnifiedView">
     <buttonTypes>
@@ -16,21 +17,25 @@
     <content>
         <TabPane>
             <Tab text="Empty Entry" closable="false">
-                <TitledPane fx:id="entriesRecommendedTitle" animated="false" collapsible="false" text="%Recommended types">
-                    <content>
-                        <FlowPane fx:id="entriesRecommendedPane"/>
-                    </content>
-                </TitledPane>
-                <TitledPane fx:id="entriesOtherTitle" animated="false" collapsible="false" text="%Other types">
-                    <content>
-                        <FlowPane fx:id="entriesOtherPane"/>
-                    </content>
-                </TitledPane>
-                <TitledPane fx:id="entriesCustomTitle" animated="false" collapsible="false" text="%Custom types">
-                    <content>
-                        <FlowPane fx:id="entriesCustomPane"/>
-                    </content>
-                </TitledPane>
+                <VBox>
+                    <children>
+                        <TitledPane fx:id="entriesRecommendedTitle" animated="false" collapsible="false" text="%Recommended types">
+                            <content>
+                                <FlowPane fx:id="entriesRecommendedPane"/>
+                            </content>
+                        </TitledPane>
+                        <TitledPane fx:id="entriesOtherTitle" animated="false" collapsible="false" text="%Other types">
+                            <content>
+                                <FlowPane fx:id="entriesOtherPane"/>
+                            </content>
+                        </TitledPane>
+                        <TitledPane fx:id="entriesCustomTitle" animated="false" collapsible="false" text="%Custom types">
+                            <content>
+                                <FlowPane fx:id="entriesCustomPane"/>
+                            </content>
+                        </TitledPane>
+                    </children>
+                </VBox>
             </Tab>
             <Tab text="From Identifier" closable="false">
             </Tab>

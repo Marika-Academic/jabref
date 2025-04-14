@@ -11,6 +11,7 @@ import javafx.scene.control.TitledPane;
 import javafx.scene.control.Tooltip;
 import javafx.scene.layout.FlowPane;
 import javafx.stage.Screen;
+import javafx.stage.Stage;
 
 import org.jabref.gui.DialogService;
 import org.jabref.gui.LibraryTab;
@@ -20,8 +21,10 @@ import org.jabref.gui.util.BaseDialog;
 import org.jabref.gui.util.IconValidationDecorator;
 import org.jabref.logic.l10n.Localization;
 import org.jabref.logic.util.TaskExecutor;
+import org.jabref.model.database.BibDatabaseMode;
 import org.jabref.model.entry.BibEntry;
 import org.jabref.model.entry.BibEntryType;
+import org.jabref.model.entry.BibEntryTypesManager;
 import org.jabref.model.entry.types.BiblatexAPAEntryTypeDefinitions;
 import org.jabref.model.entry.types.BiblatexEntryTypeDefinitions;
 import org.jabref.model.entry.types.BiblatexSoftwareEntryTypeDefinitions;
@@ -32,6 +35,7 @@ import org.jabref.model.entry.types.StandardEntryType;
 import org.jabref.model.strings.StringUtil;
 import org.jabref.model.util.FileUpdateMonitor;
 
+import com.airhacks.afterburner.injection.Injector;
 import com.airhacks.afterburner.views.ViewLoader;
 import de.saxsys.mvvmfx.utils.validation.visualization.ControlsFxVisualizer;
 import jakarta.inject.Inject;
@@ -61,6 +65,9 @@ public class NewEntryUnifiedView extends BaseDialog<BibEntry> {
 
         this.setTitle(Localization.lang("New entry"));
         ViewLoader.view(this).load().setAsDialogPane(this);
+
+        final Stage stage = (Stage) getDialogPane().getScene().getWindow();
+        stage.setMinWidth(400);
 
         setResultConverter(button -> { return result; });
 
@@ -94,6 +101,15 @@ public class NewEntryUnifiedView extends BaseDialog<BibEntry> {
         }
         addEntriesToPane(entriesRecommendedPane, recommendedEntries);
         addEntriesToPane(entriesOtherPane, otherEntries);
+
+        final BibEntryTypesManager entryTypesManager = Injector.instantiateModelOrService(BibEntryTypesManager.class);
+        final BibDatabaseMode customTypesDatabaseMode = isBiblatexMode ? BibDatabaseMode.BIBLATEX : BibDatabaseMode.BIBTEX;
+        final List<BibEntryType> customEntries = entryTypesManager.getAllCustomTypes(customTypesDatabaseMode);
+        if (customEntries.isEmpty()) {
+            entriesCustomTitle.setVisible(false);
+        } else {
+            addEntriesToPane(entriesCustomPane, customEntries);
+        }
     }
 
     private void callbackEmptyEntrySelected(EntryType type) {
