@@ -45,6 +45,7 @@ import org.jabref.gui.help.SearchForUpdateAction;
 import org.jabref.gui.importer.ImportCommand;
 import org.jabref.gui.importer.NewDatabaseAction;
 import org.jabref.gui.importer.NewEntryAction;
+import org.jabref.gui.importer.NewEntryUnifiedAction;
 import org.jabref.gui.importer.actions.OpenDatabaseAction;
 import org.jabref.gui.importer.fetcher.LookupIdentifierAction;
 import org.jabref.gui.integrity.IntegrityCheckAction;
@@ -235,8 +236,11 @@ public class MainMenu extends MenuBar {
         });
 
         library.getItems().addAll(
-                factory.createMenuItem(StandardActions.NEW_ENTRY, new NewEntryAction(frame::getCurrentLibraryTab, dialogService, preferences, stateManager)),
-                factory.createMenuItem(StandardActions.NEW_ENTRY_FROM_PLAIN_TEXT, new PlainCitationParserAction(dialogService, stateManager)),
+                factory.createMenuItem(StandardActions.NEW_ENTRY_UNIFIED, new NewEntryUnifiedAction(frame::getCurrentLibraryTab, dialogService, preferences, stateManager)),
+
+                // :MYTODO: Remove these other new entry options.
+                //factory.createMenuItem(StandardActions.NEW_ENTRY, new NewEntryAction(frame::getCurrentLibraryTab, dialogService, preferences, stateManager)),
+                //factory.createMenuItem(StandardActions.NEW_ENTRY_FROM_PLAIN_TEXT, new PlainCitationParserAction(dialogService, stateManager)),
                 factory.createMenuItem(StandardActions.DELETE_ENTRY, new EditAction(StandardActions.DELETE_ENTRY, frame::getCurrentLibraryTab, stateManager, undoManager)),
 
                 new SeparatorMenuItem(),

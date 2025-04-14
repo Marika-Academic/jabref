@@ -135,6 +135,10 @@ public enum StandardActions implements Action {
     EXPAND_ALL(Localization.lang("Expand all")),
     COLLAPSE_ALL(Localization.lang("Collapse all")),
 
+    // :MYTODO: Fix labels, link in keybindings.
+    NEW_INSTANT_ENTRY(Localization.lang("Add empty entry"), IconTheme.JabRefIcons.ADD_ARTICLE),
+    NEW_ENTRY_UNIFIED(Localization.lang("Create new entry"), IconTheme.JabRefIcons.ADD_ENTRY),
+
     NEW_ENTRY(Localization.lang("New entry"), IconTheme.JabRefIcons.ADD_ENTRY, KeyBinding.NEW_ENTRY),
     NEW_ARTICLE(Localization.lang("New article"), IconTheme.JabRefIcons.ADD_ARTICLE),
     NEW_ENTRY_FROM_PLAIN_TEXT(Localization.lang("New entry from plain text"), IconTheme.JabRefIcons.NEW_ENTRY_FROM_PLAIN_TEXT),

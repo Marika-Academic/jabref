@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.scene.control.ButtonType?>
+<?import javafx.scene.control.DialogPane?>
+<?import javafx.scene.control.Tab?>
+<?import javafx.scene.control.TabPane?>
+<?import javafx.scene.control.TextField?>
+<?import javafx.scene.control.TitledPane?>
+<?import javafx.scene.layout.FlowPane?>
+<DialogPane xmlns:fx="http://javafx.com/fxml/1" prefWidth="600" xmlns="http://javafx.com/javafx/8.0.171"
+            fx:controller="org.jabref.gui.newentryunified.NewEntryUnifiedView">
+    <buttonTypes>
+        <ButtonType fx:constant="CANCEL"/>
+        <ButtonType fx:id="generateButton" buttonData="OK_DONE" text="%Generate"/>
+    </buttonTypes>
+    <content>
+        <TabPane>
+            <Tab text="Empty Entry" closable="false">
+                <TitledPane fx:id="entriesRecommendedTitle" animated="false" collapsible="false" text="%Recommended types">
+                    <content>
+                        <FlowPane fx:id="entriesRecommendedPane"/>
+                    </content>
+                </TitledPane>
+                <TitledPane fx:id="entriesOtherTitle" animated="false" collapsible="false" text="%Other types">
+                    <content>
+                        <FlowPane fx:id="entriesOtherPane"/>
+                    </content>
+                </TitledPane>
+                <TitledPane fx:id="entriesCustomTitle" animated="false" collapsible="false" text="%Custom types">
+                    <content>
+                        <FlowPane fx:id="entriesCustomPane"/>
+                    </content>
+                </TitledPane>
+            </Tab>
+            <Tab text="From Identifier" closable="false">
+            </Tab>
+            <Tab text="Parse Text" closable="false">
+            </Tab>
+            <Tab text="From BibTex" closable="false">
+            </Tab>
+        </TabPane>
+    </content>
+</DialogPane>

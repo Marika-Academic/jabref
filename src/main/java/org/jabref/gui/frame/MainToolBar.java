@@ -29,6 +29,7 @@ import org.jabref.gui.icon.IconTheme;
 import org.jabref.gui.importer.GenerateEntryFromIdDialog;
 import org.jabref.gui.importer.NewDatabaseAction;
 import org.jabref.gui.importer.NewEntryAction;
+import org.jabref.gui.importer.NewEntryUnifiedAction;
 import org.jabref.gui.importer.actions.OpenDatabaseAction;
 import org.jabref.gui.plaincitationparser.PlainCitationParserAction;
 import org.jabref.gui.preferences.GuiPreferences;
@@ -120,10 +121,14 @@ public class MainToolBar extends ToolBar {
                 rightSpacer,
 
                 new HBox(
-                        factory.createIconButton(StandardActions.NEW_ARTICLE, new NewEntryAction(frame::getCurrentLibraryTab, StandardEntryType.Article, dialogService, preferences, stateManager)),
-                        factory.createIconButton(StandardActions.NEW_ENTRY, new NewEntryAction(frame::getCurrentLibraryTab, dialogService, preferences, stateManager)),
-                        createNewEntryFromIdButton(),
-                        factory.createIconButton(StandardActions.NEW_ENTRY_FROM_PLAIN_TEXT, new PlainCitationParserAction(dialogService, stateManager)),
+                        factory.createIconButton(StandardActions.NEW_INSTANT_ENTRY, new NewEntryUnifiedAction(frame::getCurrentLibraryTab, dialogService, preferences, stateManager, StandardEntryType.Article)),
+                        factory.createIconButton(StandardActions.NEW_ENTRY_UNIFIED, new NewEntryUnifiedAction(frame::getCurrentLibraryTab, dialogService, preferences, stateManager)),
+
+                        // :MYTODO: Remove these other new entry options.
+                        //factory.createIconButton(StandardActions.NEW_ARTICLE, new NewEntryAction(frame::getCurrentLibraryTab, StandardEntryType.Article, dialogService, preferences, stateManager)),
+                        //factory.createIconButton(StandardActions.NEW_ENTRY, new NewEntryAction(frame::getCurrentLibraryTab, dialogService, preferences, stateManager)),
+                        //createNewEntryFromIdButton(),
+                        //factory.createIconButton(StandardActions.NEW_ENTRY_FROM_PLAIN_TEXT, new PlainCitationParserAction(dialogService, stateManager)),
                         factory.createIconButton(StandardActions.DELETE_ENTRY, new EditAction(StandardActions.DELETE_ENTRY, frame::getCurrentLibraryTab, stateManager, undoManager))),
 
                 new Separator(Orientation.VERTICAL),
