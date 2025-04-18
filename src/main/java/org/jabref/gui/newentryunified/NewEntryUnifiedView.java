@@ -4,9 +4,14 @@ import java.util.Collection;
 import java.util.List;
 import java.util.ArrayList;
 
+import javafx.event.Event;
 import javafx.fxml.FXML;
 import javafx.scene.control.Button;
 import javafx.scene.control.ButtonType;
+import javafx.scene.control.ComboBox;
+import javafx.scene.control.RadioButton;
+import javafx.scene.control.Tab;
+import javafx.scene.control.TextField;
 import javafx.scene.control.TitledPane;
 import javafx.scene.control.Tooltip;
 import javafx.scene.layout.FlowPane;
@@ -19,6 +24,9 @@ import org.jabref.gui.StateManager;
 import org.jabref.gui.preferences.GuiPreferences;
 import org.jabref.gui.util.BaseDialog;
 import org.jabref.gui.util.IconValidationDecorator;
+import org.jabref.gui.util.ViewModelListCellFactory;
+import org.jabref.logic.importer.IdBasedFetcher;
+import org.jabref.logic.importer.WebFetcher;
 import org.jabref.logic.l10n.Localization;
 import org.jabref.logic.util.TaskExecutor;
 import org.jabref.model.database.BibDatabaseMode;
@@ -42,13 +50,25 @@ import jakarta.inject.Inject;
 
 public class NewEntryUnifiedView extends BaseDialog<BibEntry> {
 
-    @FXML private ButtonType generateButton;
-    @FXML private TitledPane entriesRecommendedTitle;
-    @FXML private TitledPane entriesOtherTitle;
-    @FXML private TitledPane entriesCustomTitle;
-    @FXML private FlowPane entriesRecommendedPane;
-    @FXML private FlowPane entriesOtherPane;
-    @FXML private FlowPane entriesCustomPane;
+    @FXML private ButtonType generateButtonType;
+    private Button generateButton;
+
+    @FXML private Tab tabCreateEntry;
+    @FXML private Tab tabLookupIdentifier;
+    @FXML private Tab tabInterpretCitation;
+    @FXML private Tab tabParseBibtex;
+
+    @FXML private TitledPane entryRecommendedTitle;
+    @FXML private FlowPane entryRecommended;
+    @FXML private TitledPane entryOtherTitle;
+    @FXML private FlowPane entryOther;
+    @FXML private TitledPane entryCustomTitle;
+    @FXML private FlowPane entryCustom;
+
+    @FXML private TextField idText;
+    @FXML private RadioButton idLookupGuess;
+    @FXML private RadioButton idLookupSpecify;
+    @FXML private ComboBox<IdBasedFetcher> idFetcher;
 
     private final LibraryTab libraryTab;
     private final DialogService dialogService;
@@ -63,7 +83,7 @@ public class NewEntryUnifiedView extends BaseDialog<BibEntry> {
         this.dialogService = dialogService;
         this.preferences = preferences;
 
-        this.setTitle(Localization.lang("New entry"));
+        this.setTitle(Localization.lang("New Entry"));
         ViewLoader.view(this).load().setAsDialogPane(this);
 
         final Stage stage = (Stage) getDialogPane().getScene().getWindow();
@@ -71,17 +91,41 @@ public class NewEntryUnifiedView extends BaseDialog<BibEntry> {
 
         setResultConverter(button -> { return result; });
 
-        final Button btnGenerate = (Button) this.getDialogPane().lookupButton(generateButton);
-        btnGenerate.getStyleClass().add("customGenerateButton");
+        generateButton = (Button) this.getDialogPane().lookupButton(generateButtonType);
+        generateButton.getStyleClass().add("customGenerateButton");
+        finalizeTabs();
+    }
+
+    private void finalizeTabs() {
+        if (tabCreateEntry.isSelected()) {
+            switchCreateEntry();
+        }
+        if (tabLookupIdentifier.isSelected()) {
+            switchLookupIdentifier();
+        }
+        if (tabInterpretCitation.isSelected()) {
+            switchInterpretCitation();
+        }
+        if (tabParseBibtex.isSelected()) {
+            switchParseBibtex();
+        }
     }
 
     @FXML
     public void initialize() {
         visualizer.setDecoration(new IconValidationDecorator());
 
-        entriesRecommendedTitle.managedProperty().bind(entriesRecommendedTitle.visibleProperty());
-        entriesOtherTitle.managedProperty().bind(entriesOtherTitle.visibleProperty());
-        entriesCustomTitle.managedProperty().bind(entriesCustomTitle.visibleProperty());
+        initializeCreateEntry();
+        initializeLookupIdentifier();
+    }
+
+    private void initializeCreateEntry() {
+        entryRecommendedTitle.managedProperty().bind(entryRecommendedTitle.visibleProperty());
+        entryRecommended.managedProperty().bind(entryRecommended.visibleProperty());
+        entryOtherTitle.managedProperty().bind(entryOtherTitle.visibleProperty());
+        entryOther.managedProperty().bind(entryOther.visibleProperty());
+        entryCustomTitle.managedProperty().bind(entryCustomTitle.visibleProperty());
+        entryCustom.managedProperty().bind(entryCustom.visibleProperty());
 
         final boolean isBiblatexMode = libraryTab.getBibDatabaseContext().isBiblatexMode();
 
@@ -99,20 +143,57 @@ public class NewEntryUnifiedView extends BaseDialog<BibEntry> {
             otherEntries.removeAll(recommendedEntries);
             otherEntries.addAll(IEEETranEntryTypeDefinitions.ALL);
         }
-        addEntriesToPane(entriesRecommendedPane, recommendedEntries);
-        addEntriesToPane(entriesOtherPane, otherEntries);
+        addEntriesToPane(entryRecommended, recommendedEntries);
+        addEntriesToPane(entryOther, otherEntries);
 
         final BibEntryTypesManager entryTypesManager = Injector.instantiateModelOrService(BibEntryTypesManager.class);
         final BibDatabaseMode customTypesDatabaseMode = isBiblatexMode ? BibDatabaseMode.BIBLATEX : BibDatabaseMode.BIBTEX;
         final List<BibEntryType> customEntries = entryTypesManager.getAllCustomTypes(customTypesDatabaseMode);
         if (customEntries.isEmpty()) {
-            entriesCustomTitle.setVisible(false);
+            entryCustomTitle.setVisible(false);
         } else {
-            addEntriesToPane(entriesCustomPane, customEntries);
+            addEntriesToPane(entryCustom, customEntries);
         }
     }
 
-    private void callbackEmptyEntrySelected(EntryType type) {
+    private void initializeLookupIdentifier() {
+        idText.managedProperty().bind(idText.visibleProperty());
+        idLookupGuess.managedProperty().bind(idLookupGuess.visibleProperty());
+        idLookupSpecify.managedProperty().bind(idLookupSpecify.visibleProperty());
+        idFetcher.managedProperty().bind(idFetcher.visibleProperty());
+
+        new ViewModelListCellFactory<IdBasedFetcher>().withText(WebFetcher::getName).install(idFetcher);
+    }
+
+    @FXML
+    private void switchCreateEntry() {
+        if (generateButton == null) return;
+        generateButton.setDisable(true);
+        generateButton.setText("Select");
+    }
+
+    @FXML
+    private void switchLookupIdentifier() {
+        if (generateButton == null) return;
+        generateButton.setDisable(false);
+        generateButton.setText("Lookup");
+    }
+
+    @FXML
+    private void switchInterpretCitation() {
+        if (generateButton == null) return;
+        generateButton.setDisable(false);
+        generateButton.setText("Interpret");
+    }
+
+    @FXML
+    private void switchParseBibtex() {
+        if (generateButton == null) return;
+        generateButton.setDisable(false);
+        generateButton.setText("Parse");
+    }
+
+    private void callbackEntryTypeSelected(EntryType type) {
         result = new BibEntry(type);
         this.close();
     }
@@ -124,7 +205,7 @@ public class NewEntryUnifiedView extends BaseDialog<BibEntry> {
 
             final Button button = new Button(type.getDisplayName());
             button.setUserData(entry);
-            button.setOnAction(event -> callbackEmptyEntrySelected(type));
+            button.setOnAction(event -> callbackEntryTypeSelected(type));
             pane.getChildren().add(button);
 
             final String description = descriptionOfEntryType(type);
