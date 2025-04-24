@@ -10,6 +10,7 @@
 <?import javafx.scene.control.TabPane?>
 <?import javafx.scene.control.TextField?>
 <?import javafx.scene.control.TitledPane?>
+<?import javafx.scene.control.Tooltip?>
 <?import javafx.scene.layout.FlowPane?>
 <?import javafx.scene.layout.HBox?>
 <?import javafx.scene.layout.VBox?>
@@ -20,8 +21,8 @@
         <ButtonType fx:id="generateButtonType" buttonData="OK_DONE" text="%Generate"/>
     </buttonTypes>
     <content>
-        <TabPane>
-            <Tab fx:id="tabCreateEntry" text="Create Entry" onSelectionChanged="#switchCreateEntry" closable="false">
+        <TabPane fx:id="tabs">
+            <Tab fx:id="tabCreateEntry" text="Create Entry" closable="false">
                 <VBox spacing="10.0">
                     <padding><Insets top="10.0"/></padding>
                     <TitledPane fx:id="entryRecommendedTitle" text="%Recommended types" animated="false" collapsible="false">
@@ -41,23 +42,41 @@
                     </TitledPane>
                 </VBox>
             </Tab>
-            <Tab fx:id="tabLookupIdentifier" text="Lookup Identifier" onSelectionChanged="#switchLookupIdentifier" closable="false">
+            <Tab fx:id="tabLookupIdentifier" text="Lookup Identifier" closable="false">
                 <VBox spacing="10.0">
                     <padding><Insets top="10.0"/></padding>
-                    <HBox>
+                    <HBox alignment="CENTER_LEFT" spacing="10.0">
                         <Label text="%Identifier"/>
-                        <TextField fx:id="idText" prefHeight="30.0" HBox.hgrow="ALWAYS"/>
+                        <TextField fx:id="idText" prefHeight="30.0" HBox.hgrow="ALWAYS">
+                            <tooltip>
+                                <Tooltip text="Specify the source identifier to look up."/>
+                            </tooltip>
+                        </TextField>
                     </HBox>
-                    <RadioButton fx:id="idLookupGuess" text="Automatically determine entry type"/>
-                    <HBox>
-                        <RadioButton fx:id="idLookupSpecify" text="Specify entry type"/>
-                        <ComboBox fx:id="idFetcher" prefHeight="30.0" HBox.hgrow="ALWAYS"/>
-                    </HBox>
+                    <VBox>
+                        <RadioButton fx:id="idLookupGuess" text="Automatically determine entry type">
+                            <tooltip>
+                                <Tooltip text="If selected, the provided identifier will automatically parsed and searched for.\nThis process may not always return correct results."/>
+                            </tooltip>
+                        </RadioButton>
+                        <HBox alignment="CENTER_LEFT" spacing="10.0">
+                            <RadioButton fx:id="idLookupSpecify" text="Specify entry type">
+                                <tooltip>
+                                    <Tooltip text="If selected, the specified type will be used far parsing and searching the provided identifier."/>
+                                </tooltip>
+                            </RadioButton>
+                            <ComboBox fx:id="idFetcher" prefHeight="30.0" HBox.hgrow="ALWAYS">
+                                <tooltip>
+                                    <Tooltip text="Specifying the type of the source identifier."/>
+                                </tooltip>
+                            </ComboBox>
+                        </HBox>
+                    </VBox>
                 </VBox>
             </Tab>
-            <Tab fx:id="tabInterpretCitation" text="Interpret Citation" onSelectionChanged="#switchInterpretCitation" closable="false">
+            <Tab fx:id="tabInterpretCitation" text="Interpret Citation" closable="false">
             </Tab>
-            <Tab fx:id="tabParseBibtex" text="Parse BibTeX" onSelectionChanged="#switchParseBibtex" closable="false">
+            <Tab fx:id="tabParseBibtex" text="Parse BibTeX" closable="false">
             </Tab>
         </TabPane>
     </content>

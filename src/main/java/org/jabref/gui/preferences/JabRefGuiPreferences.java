@@ -40,6 +40,7 @@ import org.jabref.gui.maintable.MainTablePreferences;
 import org.jabref.gui.maintable.NameDisplayPreferences;
 import org.jabref.gui.mergeentries.DiffMode;
 import org.jabref.gui.mergeentries.MergeDialogPreferences;
+import org.jabref.gui.newentryunified.NewEntryUnifiedPreferences;
 import org.jabref.gui.preview.PreviewPreferences;
 import org.jabref.gui.push.PushToApplicationPreferences;
 import org.jabref.gui.push.PushToApplications;
@@ -238,6 +239,7 @@ public class JabRefGuiPreferences extends JabRefCliPreferences implements GuiPre
     private ColumnPreferences searchDialogColumnPreferences;
     private KeyBindingRepository keyBindingRepository;
     private CopyToPreferences copyToPreferences;
+    private NewEntryUnifiedPreferences newEntryUnifiedPreferences;
 
     private JabRefGuiPreferences() {
         super();
@@ -1230,6 +1232,14 @@ public class JabRefGuiPreferences extends JabRefCliPreferences implements GuiPre
         });
 
         return keyBindingRepository;
+    }
+
+    @Override
+    public NewEntryUnifiedPreferences getNewEntryUnifiedPreferences() {
+        if (newEntryUnifiedPreferences == null) {
+            newEntryUnifiedPreferences = NewEntryUnifiedPreferences.defaults();
+        }
+        return newEntryUnifiedPreferences;
     }
 
     /**
