@@ -53,6 +53,13 @@ import de.saxsys.mvvmfx.utils.validation.visualization.ControlsFxVisualizer;
 import jakarta.inject.Inject;
 
 public class NewEntryUnifiedView extends BaseDialog<BibEntry> {
+    private final NewEntryUnifiedViewModel viewModel;
+
+    private final LibraryTab libraryTab;
+    private final DialogService dialogService;
+    private final NewEntryUnifiedPreferences preferences;
+
+    private final ControlsFxVisualizer visualizer;
 
     @FXML private ButtonType generateButtonType;
     private Button generateButton;
@@ -75,29 +82,27 @@ public class NewEntryUnifiedView extends BaseDialog<BibEntry> {
     @FXML private RadioButton idLookupSpecify;
     @FXML private ComboBox<IdBasedFetcher> idFetcher;
 
-    private final LibraryTab libraryTab;
-    private final DialogService dialogService;
-    private final NewEntryUnifiedPreferences preferences;
-
-    private final ControlsFxVisualizer visualizer = new ControlsFxVisualizer();
-
     private BibEntry result;
 
     public NewEntryUnifiedView(LibraryTab libraryTab, DialogService dialogService, GuiPreferences preferences) {
+        viewModel = new NewEntryUnifiedViewModel(libraryTab, dialogService, preferences);
+
         this.libraryTab = libraryTab;
         this.dialogService = dialogService;
         this.preferences = preferences.getNewEntryUnifiedPreferences();
 
+        visualizer = new ControlsFxVisualizer();
         this.setTitle(Localization.lang("New Entry"));
         ViewLoader.view(this).load().setAsDialogPane(this);
+
+        generateButton = (Button) this.getDialogPane().lookupButton(generateButtonType);
+        generateButton.getStyleClass().add("customGenerateButton");
 
         final Stage stage = (Stage) getDialogPane().getScene().getWindow();
         stage.setMinWidth(400);
 
         setResultConverter(button -> { return result; });
 
-        generateButton = (Button) this.getDialogPane().lookupButton(generateButtonType);
-        generateButton.getStyleClass().add("customGenerateButton");
         finalizeTabs();
     }
 
@@ -196,7 +201,9 @@ public class NewEntryUnifiedView extends BaseDialog<BibEntry> {
                 }
             });
 
-        new ViewModelListCellFactory<IdBasedFetcher>().withText(WebFetcher::getName).install(idFetcher);
+        idFetcher.itemsProperty().bind(viewModel.idFetchersProperty());
+
+        //new ViewModelListCellFactory<IdBasedFetcher>().withText(WebFetcher::getName).install(idFetcher);
     }
 
     @FXML

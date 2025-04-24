@@ -59,18 +59,16 @@
                                 <Tooltip text="If selected, the provided identifier will automatically parsed and searched for.\nThis process may not always return correct results."/>
                             </tooltip>
                         </RadioButton>
-                        <HBox alignment="CENTER_LEFT" spacing="10.0">
-                            <RadioButton fx:id="idLookupSpecify" text="Specify entry type">
-                                <tooltip>
-                                    <Tooltip text="If selected, the specified type will be used far parsing and searching the provided identifier."/>
-                                </tooltip>
-                            </RadioButton>
-                            <ComboBox fx:id="idFetcher" prefHeight="30.0" HBox.hgrow="ALWAYS">
-                                <tooltip>
-                                    <Tooltip text="Specifying the type of the source identifier."/>
-                                </tooltip>
-                            </ComboBox>
-                        </HBox>
+                        <RadioButton fx:id="idLookupSpecify" text="Specify entry type">
+                            <tooltip>
+                                <Tooltip text="If selected, the specified type will be used far parsing and searching the provided identifier."/>
+                            </tooltip>
+                        </RadioButton>
+                        <ComboBox fx:id="idFetcher" prefHeight="30.0" HBox.hgrow="ALWAYS">
+                            <tooltip>
+                                <Tooltip text="Specifying the type of the source identifier."/>
+                            </tooltip>
+                        </ComboBox>
                     </VBox>
                 </VBox>
             </Tab>
