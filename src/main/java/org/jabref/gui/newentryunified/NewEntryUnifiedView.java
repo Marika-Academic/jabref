@@ -4,6 +4,7 @@ import java.util.Collection;
 import java.util.List;
 import java.util.ArrayList;
 
+import javafx.application.Platform;
 import javafx.beans.value.ChangeListener;
 import javafx.beans.value.ObservableValue;
 import javafx.event.Event;
@@ -14,6 +15,7 @@ import javafx.scene.control.ComboBox;
 import javafx.scene.control.RadioButton;
 import javafx.scene.control.Tab;
 import javafx.scene.control.TabPane;
+import javafx.scene.control.TextArea;
 import javafx.scene.control.TextField;
 import javafx.scene.control.TitledPane;
 import javafx.scene.control.ToggleGroup;
@@ -22,6 +24,7 @@ import javafx.scene.layout.FlowPane;
 import javafx.stage.Screen;
 import javafx.stage.Stage;
 
+import org.jabref.gui.ClipBoardManager;
 import org.jabref.gui.DialogService;
 import org.jabref.gui.LibraryTab;
 import org.jabref.gui.StateManager;
@@ -67,8 +70,8 @@ public class NewEntryUnifiedView extends BaseDialog<BibEntry> {
     @FXML private TabPane tabs;
     @FXML private Tab tabCreateEntry;
     @FXML private Tab tabLookupIdentifier;
-    @FXML private Tab tabInterpretCitation;
-    @FXML private Tab tabParseBibtex;
+    @FXML private Tab tabInterpretCitations;
+    @FXML private Tab tabSpecifyBibtex;
 
     @FXML private TitledPane entryRecommendedTitle;
     @FXML private FlowPane entryRecommended;
@@ -81,6 +84,10 @@ public class NewEntryUnifiedView extends BaseDialog<BibEntry> {
     @FXML private RadioButton idLookupGuess;
     @FXML private RadioButton idLookupSpecify;
     @FXML private ComboBox<IdBasedFetcher> idFetcher;
+
+    @FXML private TextArea interpretText;
+
+    @FXML private TextArea bibtexText;
 
     private BibEntry result;
 
@@ -104,6 +111,7 @@ public class NewEntryUnifiedView extends BaseDialog<BibEntry> {
         setResultConverter(button -> { return result; });
 
         finalizeTabs();
+        tabs.requestFocus();
     }
 
     private void finalizeTabs() {
@@ -116,20 +124,20 @@ public class NewEntryUnifiedView extends BaseDialog<BibEntry> {
                 tabs.getSelectionModel().select(tabLookupIdentifier);
                 switchLookupIdentifier();
                 break;
-            case NewEntryUnifiedApproach.INTERPRET_CITATION:
-                tabs.getSelectionModel().select(tabInterpretCitation);
+            case NewEntryUnifiedApproach.INTERPRET_CITATIONS:
+                tabs.getSelectionModel().select(tabInterpretCitations);
                 switchInterpretCitation();
                 break;
-            case NewEntryUnifiedApproach.PARSE_BIBTEX:
-                tabs.getSelectionModel().select(tabParseBibtex);
-                switchParseBibtex();
+            case NewEntryUnifiedApproach.SPECIFY_BIBTEX:
+                tabs.getSelectionModel().select(tabSpecifyBibtex);
+                switchSpecifyBibtex();
                 break;
         }
 
         tabCreateEntry.setOnSelectionChanged(event -> switchCreateEntry());
         tabLookupIdentifier.setOnSelectionChanged(event -> switchLookupIdentifier());
-        tabInterpretCitation.setOnSelectionChanged(event -> switchInterpretCitation());
-        tabParseBibtex.setOnSelectionChanged(event -> switchParseBibtex());
+        tabInterpretCitations.setOnSelectionChanged(event -> switchInterpretCitation());
+        tabSpecifyBibtex.setOnSelectionChanged(event -> switchSpecifyBibtex());
     }
 
     @FXML
@@ -138,6 +146,8 @@ public class NewEntryUnifiedView extends BaseDialog<BibEntry> {
 
         initializeCreateEntry();
         initializeLookupIdentifier();
+        initializeInterpretCitations();
+        initializeSpecifyBibTex();
     }
 
     private void initializeCreateEntry() {
@@ -178,11 +188,18 @@ public class NewEntryUnifiedView extends BaseDialog<BibEntry> {
     }
 
     private void initializeLookupIdentifier() {
-        idText.managedProperty().bind(idText.visibleProperty());
-        idLookupGuess.managedProperty().bind(idLookupGuess.visibleProperty());
-        idLookupSpecify.managedProperty().bind(idLookupSpecify.visibleProperty());
-        idFetcher.managedProperty().bind(idFetcher.visibleProperty());
-        idFetcher.disableProperty().bind(idLookupSpecify.selectedProperty().not());
+        final String clipboardText = ClipBoardManager.getContents().trim();
+        if (!StringUtil.isBlank(clipboardText) && !clipboardText.contains("\n")) { // :MYTODO: Better validation?
+            idText.setText(clipboardText);
+            idText.selectAll();
+        }
+
+        idLookupGuess.selectedProperty().addListener(
+            new ChangeListener<Boolean>() {
+                public void changed(ObservableValue<? extends Boolean> observable, Boolean oldValue, Boolean newValue) {
+                    preferences.setIdLookupGuessing(newValue);
+                }
+            });
 
         ToggleGroup toggleGroup = new ToggleGroup();
         idLookupGuess.setToggleGroup(toggleGroup);
@@ -194,16 +211,29 @@ public class NewEntryUnifiedView extends BaseDialog<BibEntry> {
             idLookupSpecify.selectedProperty().set(true);
         }
 
-        idLookupGuess.selectedProperty().addListener(
-            new ChangeListener<Boolean>() {
-                public void changed(ObservableValue<? extends Boolean> observable, Boolean oldValue, Boolean newValue) {
-                    preferences.setIdLookupGuessing(newValue);
-                }
-            });
-
         idFetcher.itemsProperty().bind(viewModel.idFetchersProperty());
+        new ViewModelListCellFactory<IdBasedFetcher>().withText(WebFetcher::getName).install(idFetcher);
+        idFetcher.disableProperty().bind(idLookupSpecify.selectedProperty().not());
+    }
 
-        //new ViewModelListCellFactory<IdBasedFetcher>().withText(WebFetcher::getName).install(idFetcher);
+    private void initializeInterpretCitations() {
+        interpretText.setPromptText(Localization.lang("Enter the plain citations to parse, separated by blank lines."));
+
+        final String clipboardText = ClipBoardManager.getContents().trim();
+        if (!StringUtil.isBlank(clipboardText)) {
+            interpretText.setText(clipboardText);
+            interpretText.selectAll();
+        }
+    }
+
+    private void initializeSpecifyBibTex() {
+        bibtexText.setPromptText(Localization.lang("Enter the BibTeX source to generate an entry from."));
+
+        final String clipboardText = ClipBoardManager.getContents().trim();
+        if (!StringUtil.isBlank(clipboardText)) { // :MYTODO: Validation and automatic formatting.
+            bibtexText.setText(clipboardText);
+            bibtexText.selectAll();
+        }
     }
 
     @FXML
@@ -213,6 +243,7 @@ public class NewEntryUnifiedView extends BaseDialog<BibEntry> {
         }
 
         preferences.setSelectedApproach(NewEntryUnifiedApproach.CREATE_ENTRY);
+
         if (generateButton != null) {
             generateButton.setDisable(true);
             generateButton.setText("Select");
@@ -226,6 +257,11 @@ public class NewEntryUnifiedView extends BaseDialog<BibEntry> {
         }
 
         preferences.setSelectedApproach(NewEntryUnifiedApproach.LOOKUP_IDENTIFIER);
+
+        if (idText != null) {
+            Platform.runLater(() -> idText.requestFocus());
+        }
+
         if (generateButton != null) {
             generateButton.setDisable(false);
             generateButton.setText("Lookup");
@@ -234,11 +270,16 @@ public class NewEntryUnifiedView extends BaseDialog<BibEntry> {
 
     @FXML
     private void switchInterpretCitation() {
-        if (!tabInterpretCitation.isSelected()) {
+        if (!tabInterpretCitations.isSelected()) {
             return;
         }
 
-        preferences.setSelectedApproach(NewEntryUnifiedApproach.INTERPRET_CITATION);
+        preferences.setSelectedApproach(NewEntryUnifiedApproach.INTERPRET_CITATIONS);
+
+        if (interpretText != null) {
+            Platform.runLater(() -> interpretText.requestFocus());
+        }
+
         if (generateButton != null) {
             generateButton.setDisable(false);
             generateButton.setText("Interpret");
@@ -246,19 +287,24 @@ public class NewEntryUnifiedView extends BaseDialog<BibEntry> {
     }
 
     @FXML
-    private void switchParseBibtex() {
-        if (!tabParseBibtex.isSelected()) {
+    private void switchSpecifyBibtex() {
+        if (!tabSpecifyBibtex.isSelected()) {
             return;
         }
 
-        preferences.setSelectedApproach(NewEntryUnifiedApproach.PARSE_BIBTEX);
+        preferences.setSelectedApproach(NewEntryUnifiedApproach.SPECIFY_BIBTEX);
+
+        if (bibtexText != null) {
+            Platform.runLater(() -> bibtexText.requestFocus());
+        }
+
         if (generateButton != null) {
             generateButton.setDisable(false);
-            generateButton.setText("Parse");
+            generateButton.setText("Generate");
         }
     }
 
-    private void callbackEntryTypeSelected(EntryType type) {
+    private void onEntryTypeSelected(EntryType type) {
         result = new BibEntry(type);
         this.close();
     }
@@ -270,7 +316,7 @@ public class NewEntryUnifiedView extends BaseDialog<BibEntry> {
 
             final Button button = new Button(type.getDisplayName());
             button.setUserData(entry);
-            button.setOnAction(event -> callbackEntryTypeSelected(type));
+            button.setOnAction(event -> onEntryTypeSelected(type));
             pane.getChildren().add(button);
 
             final String description = descriptionOfEntryType(type);

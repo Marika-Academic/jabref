@@ -46,8 +46,7 @@ public class NewEntryUnifiedAction extends SimpleCommand {
     public void execute() {
         // Without a tab supplier, we can only log an error message and abort.
         if (tabSupplier.get() == null) {
-            // :MYTODO: Fix tool name in log message.
-            LOGGER.error("Action 'NEW ENTRY UNIFIED' must be disabled when no database is open.");
+            LOGGER.error("Action 'New Entry' must be disabled when no database is open.");
             return;
         }
 

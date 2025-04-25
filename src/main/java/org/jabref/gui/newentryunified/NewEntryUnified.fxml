@@ -8,6 +8,7 @@
 <?import javafx.scene.control.RadioButton?>
 <?import javafx.scene.control.Tab?>
 <?import javafx.scene.control.TabPane?>
+<?import javafx.scene.control.TextArea?>
 <?import javafx.scene.control.TextField?>
 <?import javafx.scene.control.TitledPane?>
 <?import javafx.scene.control.Tooltip?>
@@ -53,7 +54,7 @@
                             </tooltip>
                         </TextField>
                     </HBox>
-                    <VBox>
+                    <VBox spacing="5.0">
                         <RadioButton fx:id="idLookupGuess" text="Automatically determine entry type">
                             <tooltip>
                                 <Tooltip text="If selected, the provided identifier will automatically parsed and searched for.\nThis process may not always return correct results."/>
@@ -64,17 +65,28 @@
                                 <Tooltip text="If selected, the specified type will be used far parsing and searching the provided identifier."/>
                             </tooltip>
                         </RadioButton>
-                        <ComboBox fx:id="idFetcher" prefHeight="30.0" HBox.hgrow="ALWAYS">
-                            <tooltip>
-                                <Tooltip text="Specifying the type of the source identifier."/>
-                            </tooltip>
-                        </ComboBox>
+                        <HBox>
+                            <padding><Insets left="25.0"/></padding>
+                            <ComboBox fx:id="idFetcher" prefHeight="30.0" HBox.hgrow="ALWAYS" maxWidth="1.7976931348623157E308">
+                                <tooltip>
+                                    <Tooltip text="Specifying the type of the source identifier."/>
+                                </tooltip>
+                            </ComboBox>
+                        </HBox>
                     </VBox>
                 </VBox>
             </Tab>
-            <Tab fx:id="tabInterpretCitation" text="Interpret Citation" closable="false">
+            <Tab fx:id="tabInterpretCitations" text="Interpret Citations" closable="false">
+                <VBox spacing="10.0">
+                    <padding><Insets top="10.0"/></padding>
+                    <TextArea fx:id="interpretText" VBox.vgrow="always" wrapText="true"/>
+                </VBox>
             </Tab>
-            <Tab fx:id="tabParseBibtex" text="Parse BibTeX" closable="false">
+            <Tab fx:id="tabSpecifyBibtex" text="Enter BibTeX" closable="false">
+                <VBox spacing="10.0">
+                    <padding><Insets top="10.0"/></padding>
+                    <TextArea fx:id="bibtexText" VBox.vgrow="always" wrapText="true"/>
+                </VBox>
             </Tab>
         </TabPane>
     </content>
