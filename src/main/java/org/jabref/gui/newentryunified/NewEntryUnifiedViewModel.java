@@ -21,6 +21,7 @@ import org.jabref.gui.StateManager;
 import org.jabref.gui.externalfiles.ImportHandler;
 import org.jabref.gui.preferences.GuiPreferences;
 import org.jabref.gui.util.UiTaskExecutor;
+import org.jabref.logic.importer.CompositeIdFetcher;
 import org.jabref.logic.importer.FetcherClientException;
 import org.jabref.logic.importer.FetcherException;
 import org.jabref.logic.importer.FetcherServerException;
@@ -119,6 +120,20 @@ public class NewEntryUnifiedViewModel {
 
     private class IdLookupWorker extends Task<Optional<BibEntry>> {
         private String text = null;
+        private CompositeIdFetcher fetcher = new CompositeIdFetcher(preferences.getImportFormatPreferences());
+
+        @Override
+        protected Optional<BibEntry> call() throws FetcherException {
+            text = idText.getValue();
+            if (text == null || text.isEmpty()) {
+                return Optional.empty();
+            }
+            return fetcher.performSearchById(text);
+        }
+    }
+
+    private class IdLookupTypedWorker extends Task<Optional<BibEntry>> {
+        private String text = null;
         private IdBasedFetcher fetcher = null;
 
         @Override
@@ -132,9 +147,14 @@ public class NewEntryUnifiedViewModel {
         }
     }
 
-    public void executeLookupIdentifier() {
+    public void executeLookupIdentifier(boolean searchComposite) {
         executing.setValue(true);
-        idLookupWorker = new IdLookupWorker();
+
+        if (searchComposite) {
+            idLookupWorker = new IdLookupWorker();
+        } else {
+            idLookupWorker = new IdLookupTypedWorker();
+        }
 
         idLookupWorker.setOnFailed(event -> {
             final Throwable exception = idLookupWorker.getException();
@@ -149,8 +169,8 @@ public class NewEntryUnifiedViewModel {
                     dialogTitle,
                     Localization.lang(
                         "Bibliographic data could not be retrieved.\n" +
-                        "This is likely due to an issue with your input or network connection.\n" +
-                        "Check your network connection and provided identifier, and try again.\n" +
+                        "This is likely due to an issue with your input, or your network connection.\n" +
+                        "Check your provided identifier (and identifier type), and try again.\n" +
                         exceptionMessage));
             } else if (exception instanceof FetcherServerException) {
                 dialogService.showInformationDialogAndWait(

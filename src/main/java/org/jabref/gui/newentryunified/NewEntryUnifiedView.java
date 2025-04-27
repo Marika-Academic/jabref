@@ -372,11 +372,7 @@ public class NewEntryUnifiedView extends BaseDialog<BibEntry> {
                 // We do nothing here.
                 break;
             case NewEntryUnifiedApproach.LOOKUP_IDENTIFIER:
-                if (idLookupGuess.isSelected()) {
-                    // :MYTODO:
-                } else {
-                    viewModel.executeLookupIdentifier();
-                }
+                viewModel.executeLookupIdentifier(idLookupGuess.isSelected());
                 break;
             case NewEntryUnifiedApproach.INTERPRET_CITATIONS:
                 // :MYTODO:
