@@ -26,19 +26,23 @@ public class NewEntryUnifiedAction extends SimpleCommand {
 
     private final GuiPreferences preferences;
 
+    private boolean isInstant;
     private Optional<EntryType> instantType;
 
     public NewEntryUnifiedAction(Supplier<LibraryTab> tabSupplier, DialogService dialogService, GuiPreferences preferences, StateManager stateManager) {
         this.tabSupplier = tabSupplier;
         this.dialogService = dialogService;
         this.preferences = preferences;
+        this.isInstant = false;
         this.instantType = Optional.empty();
 
         this.executable.bind(ActionHelper.needsDatabase(stateManager));
     }
 
-    public NewEntryUnifiedAction(Supplier<LibraryTab> tabSupplier, DialogService dialogService, GuiPreferences preferences, StateManager stateManager, EntryType instantType) {
+    public NewEntryUnifiedAction(EntryType instantType, Supplier<LibraryTab> tabSupplier, DialogService dialogService, GuiPreferences preferences, StateManager stateManager) {
         this(tabSupplier, dialogService, preferences, stateManager);
+
+        this.isInstant = true;
         this.instantType = Optional.ofNullable(instantType);
     }
 
@@ -51,17 +55,26 @@ public class NewEntryUnifiedAction extends SimpleCommand {
         }
 
         BibEntry newEntry;
-        if (instantType.isPresent()) {
-            // If we were constructed with an instant type, then we simply create this type.
-            newEntry = new BibEntry(instantType.get());
-        }
-        else
-        {
+        if (isInstant) {
+            // If we're an instant action...
+            final EntryType type;
+            if (instantType.isPresent()) {
+                // And we were created with an instant type, then we use that type.
+                type = instantType.get();
+            } else {
+                // Otherwise, we query the last-selected entry type from the NewEntryUnified dialogue.
+                type = preferences.getNewEntryUnifiedPreferences().getLastSelectedInstantType();
+            }
+            // ...and create a new entry using this type.
+            newEntry = new BibEntry(type);
+        } else {
             // Otherwise, we launch a panel asking the user to specify details of the new entry.
             NewEntryUnifiedView newEntryDialog = new NewEntryUnifiedView(tabSupplier.get(), dialogService, preferences);
-            newEntry  = dialogService.showCustomDialogAndWait(newEntryDialog).orElse(null);
+            newEntry = dialogService.showCustomDialogAndWait(newEntryDialog).orElse(null);
         }
 
+        // This dialogue might handle inserting the new entry directly, so we don't do anything if the dialogue returns
+        // `null`.
         if (newEntry != null) {
             tabSupplier.get().insertEntry(newEntry);
         }

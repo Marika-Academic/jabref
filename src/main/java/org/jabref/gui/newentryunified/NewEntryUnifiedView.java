@@ -1,14 +1,15 @@
 package org.jabref.gui.newentryunified;
 
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
-import java.util.ArrayList;
 
 import javafx.application.Platform;
 import javafx.beans.value.ChangeListener;
 import javafx.beans.value.ObservableValue;
 import javafx.event.Event;
 import javafx.fxml.FXML;
+import javafx.scene.Node;
 import javafx.scene.control.Button;
 import javafx.scene.control.ButtonType;
 import javafx.scene.control.ComboBox;
@@ -58,6 +59,8 @@ import jakarta.inject.Inject;
 public class NewEntryUnifiedView extends BaseDialog<BibEntry> {
     private final NewEntryUnifiedViewModel viewModel;
 
+    private NewEntryUnifiedApproach currentApproach;
+
     private final LibraryTab libraryTab;
     private final DialogService dialogService;
     private final NewEntryUnifiedPreferences preferences;
@@ -105,8 +108,7 @@ public class NewEntryUnifiedView extends BaseDialog<BibEntry> {
         generateButton = (Button) this.getDialogPane().lookupButton(generateButtonType);
         generateButton.getStyleClass().add("customGenerateButton");
 
-        final Stage stage = (Stage) getDialogPane().getScene().getWindow();
-        stage.setMinWidth(400);
+        ((Stage)(getDialogPane().getScene().getWindow())).setMinWidth(400);
 
         setResultConverter(button -> { return result; });
 
@@ -115,7 +117,7 @@ public class NewEntryUnifiedView extends BaseDialog<BibEntry> {
     }
 
     private void finalizeTabs() {
-        switch (preferences.getSelectedApproach()) {
+        switch (preferences.getLatestApproach()) {
             case NewEntryUnifiedApproach.CREATE_ENTRY:
                 tabs.getSelectionModel().select(tabCreateEntry);
                 switchCreateEntry();
@@ -242,7 +244,8 @@ public class NewEntryUnifiedView extends BaseDialog<BibEntry> {
             return;
         }
 
-        preferences.setSelectedApproach(NewEntryUnifiedApproach.CREATE_ENTRY);
+        currentApproach = NewEntryUnifiedApproach.CREATE_ENTRY;
+        preferences.setLatestApproach(NewEntryUnifiedApproach.CREATE_ENTRY);
 
         if (generateButton != null) {
             generateButton.setDisable(true);
@@ -256,7 +259,8 @@ public class NewEntryUnifiedView extends BaseDialog<BibEntry> {
             return;
         }
 
-        preferences.setSelectedApproach(NewEntryUnifiedApproach.LOOKUP_IDENTIFIER);
+        currentApproach = NewEntryUnifiedApproach.LOOKUP_IDENTIFIER;
+        preferences.setLatestApproach(NewEntryUnifiedApproach.LOOKUP_IDENTIFIER);
 
         if (idText != null) {
             Platform.runLater(() -> idText.requestFocus());
@@ -274,7 +278,8 @@ public class NewEntryUnifiedView extends BaseDialog<BibEntry> {
             return;
         }
 
-        preferences.setSelectedApproach(NewEntryUnifiedApproach.INTERPRET_CITATIONS);
+        currentApproach = NewEntryUnifiedApproach.INTERPRET_CITATIONS;
+        preferences.setLatestApproach(NewEntryUnifiedApproach.INTERPRET_CITATIONS);
 
         if (interpretText != null) {
             Platform.runLater(() -> interpretText.requestFocus());
@@ -292,7 +297,8 @@ public class NewEntryUnifiedView extends BaseDialog<BibEntry> {
             return;
         }
 
-        preferences.setSelectedApproach(NewEntryUnifiedApproach.SPECIFY_BIBTEX);
+        currentApproach = NewEntryUnifiedApproach.SPECIFY_BIBTEX;
+        preferences.setLatestApproach(NewEntryUnifiedApproach.SPECIFY_BIBTEX);
 
         if (bibtexText != null) {
             Platform.runLater(() -> bibtexText.requestFocus());
@@ -305,6 +311,7 @@ public class NewEntryUnifiedView extends BaseDialog<BibEntry> {
     }
 
     private void onEntryTypeSelected(EntryType type) {
+        preferences.setLastSelectedInstantType(type);
         result = new BibEntry(type);
         this.close();
     }

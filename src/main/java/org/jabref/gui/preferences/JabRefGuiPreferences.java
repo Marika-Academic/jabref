@@ -1237,7 +1237,7 @@ public class JabRefGuiPreferences extends JabRefCliPreferences implements GuiPre
     @Override
     public NewEntryUnifiedPreferences getNewEntryUnifiedPreferences() {
         if (newEntryUnifiedPreferences == null) {
-            newEntryUnifiedPreferences = NewEntryUnifiedPreferences.defaults();
+            newEntryUnifiedPreferences = new NewEntryUnifiedPreferences();
         }
         return newEntryUnifiedPreferences;
     }

@@ -15,6 +15,7 @@
 <?import javafx.scene.layout.FlowPane?>
 <?import javafx.scene.layout.HBox?>
 <?import javafx.scene.layout.VBox?>
+<?import javafx.scene.text.Font?>
 <DialogPane xmlns:fx="http://javafx.com/fxml/1" prefWidth="600" xmlns="http://javafx.com/javafx/8.0.171"
             fx:controller="org.jabref.gui.newentryunified.NewEntryUnifiedView">
     <buttonTypes>
@@ -23,7 +24,7 @@
     </buttonTypes>
     <content>
         <TabPane fx:id="tabs">
-            <Tab fx:id="tabCreateEntry" text="Create Entry" closable="false">
+            <Tab fx:id="tabCreateEntry" text="%Create Entry" closable="false">
                 <VBox spacing="10.0">
                     <padding><Insets top="10.0"/></padding>
                     <TitledPane fx:id="entryRecommendedTitle" text="%Recommended types" animated="false" collapsible="false">
@@ -41,48 +42,51 @@
                             <FlowPane fx:id="entryCustom"/>
                         </content>
                     </TitledPane>
+                    <Label text="%The last-selected entry type will be used by 'add empty entry' quick action in the toolbar.">
+                        <font><Font name="System Italic" size="13.0"/></font>
+                    </Label>
                 </VBox>
             </Tab>
-            <Tab fx:id="tabLookupIdentifier" text="Lookup Identifier" closable="false">
+            <Tab fx:id="tabLookupIdentifier" text="%Lookup Identifier" closable="false">
                 <VBox spacing="10.0">
                     <padding><Insets top="10.0"/></padding>
                     <HBox alignment="CENTER_LEFT" spacing="10.0">
-                        <Label text="%Identifier"/>
+                        <Label text="%Identifier:"/>
                         <TextField fx:id="idText" prefHeight="30.0" HBox.hgrow="ALWAYS">
                             <tooltip>
-                                <Tooltip text="Specify the source identifier to look up."/>
+                                <Tooltip text="%Specify the source identifier to look up."/>
                             </tooltip>
                         </TextField>
                     </HBox>
                     <VBox spacing="5.0">
-                        <RadioButton fx:id="idLookupGuess" text="Automatically determine entry type">
+                        <RadioButton fx:id="idLookupGuess" text="%Automatically determine entry type">
                             <tooltip>
-                                <Tooltip text="If selected, the provided identifier will automatically parsed and searched for.\nThis process may not always return correct results."/>
+                                <Tooltip text="%If selected, the provided identifier will automatically parsed and searched for.\nThis process may not always return correct results."/>
                             </tooltip>
                         </RadioButton>
-                        <RadioButton fx:id="idLookupSpecify" text="Specify entry type">
+                        <RadioButton fx:id="idLookupSpecify" text="%Specify entry type:">
                             <tooltip>
-                                <Tooltip text="If selected, the specified type will be used far parsing and searching the provided identifier."/>
+                                <Tooltip text="%If selected, the specified type will be used far parsing and searching the provided identifier."/>
                             </tooltip>
                         </RadioButton>
                         <HBox>
                             <padding><Insets left="25.0"/></padding>
                             <ComboBox fx:id="idFetcher" prefHeight="30.0" HBox.hgrow="ALWAYS" maxWidth="1.7976931348623157E308">
                                 <tooltip>
-                                    <Tooltip text="Specifying the type of the source identifier."/>
+                                    <Tooltip text="%Specifying the type of the source identifier."/>
                                 </tooltip>
                             </ComboBox>
                         </HBox>
                     </VBox>
                 </VBox>
             </Tab>
-            <Tab fx:id="tabInterpretCitations" text="Interpret Citations" closable="false">
+            <Tab fx:id="tabInterpretCitations" text="%Interpret Citations" closable="false">
                 <VBox spacing="10.0">
                     <padding><Insets top="10.0"/></padding>
                     <TextArea fx:id="interpretText" VBox.vgrow="always" wrapText="true"/>
                 </VBox>
             </Tab>
-            <Tab fx:id="tabSpecifyBibtex" text="Enter BibTeX" closable="false">
+            <Tab fx:id="tabSpecifyBibtex" text="%Enter BibTeX" closable="false">
                 <VBox spacing="10.0">
                     <padding><Insets top="10.0"/></padding>
                     <TextArea fx:id="bibtexText" VBox.vgrow="always" wrapText="true"/>

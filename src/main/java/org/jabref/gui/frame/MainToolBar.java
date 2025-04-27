@@ -121,7 +121,7 @@ public class MainToolBar extends ToolBar {
                 rightSpacer,
 
                 new HBox(
-                        factory.createIconButton(StandardActions.NEW_INSTANT_ENTRY, new NewEntryUnifiedAction(frame::getCurrentLibraryTab, dialogService, preferences, stateManager, StandardEntryType.Article)),
+                        factory.createIconButton(StandardActions.NEW_INSTANT_ENTRY, new NewEntryUnifiedAction(null, frame::getCurrentLibraryTab, dialogService, preferences, stateManager)),
                         factory.createIconButton(StandardActions.NEW_ENTRY_UNIFIED, new NewEntryUnifiedAction(frame::getCurrentLibraryTab, dialogService, preferences, stateManager)),
 
                         // :MYTODO: Remove these other new entry options.
