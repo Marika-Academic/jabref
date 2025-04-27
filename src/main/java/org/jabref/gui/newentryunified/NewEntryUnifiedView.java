@@ -216,6 +216,18 @@ public class NewEntryUnifiedView extends BaseDialog<BibEntry> {
         idFetcher.itemsProperty().bind(viewModel.idFetchersProperty());
         new ViewModelListCellFactory<IdBasedFetcher>().withText(WebFetcher::getName).install(idFetcher);
         idFetcher.disableProperty().bind(idLookupSpecify.selectedProperty().not());
+        final String lastFetcherName = preferences.getLatestIdFetcher();
+        IdBasedFetcher lastFetcher = null;
+        for (IdBasedFetcher fetcher : idFetcher.getItems()) {
+            if (fetcher.getName() == lastFetcherName) {
+                lastFetcher = fetcher;
+                break;
+            }
+        }
+        idFetcher.setValue(lastFetcher);
+        idFetcher.setOnAction(event -> {
+            preferences.setLatestIdFetcher(idFetcher.getValue().getName());
+            });
     }
 
     private void initializeInterpretCitations() {
@@ -311,7 +323,7 @@ public class NewEntryUnifiedView extends BaseDialog<BibEntry> {
     }
 
     private void onEntryTypeSelected(EntryType type) {
-        preferences.setLastSelectedInstantType(type);
+        preferences.setLatestInstantType(type);
         result = new BibEntry(type);
         this.close();
     }

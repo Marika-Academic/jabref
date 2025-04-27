@@ -63,7 +63,7 @@ public class NewEntryUnifiedAction extends SimpleCommand {
                 type = instantType.get();
             } else {
                 // Otherwise, we query the last-selected entry type from the NewEntryUnified dialogue.
-                type = preferences.getNewEntryUnifiedPreferences().getLastSelectedInstantType();
+                type = preferences.getNewEntryUnifiedPreferences().getLatestInstantType();
             }
             // ...and create a new entry using this type.
             newEntry = new BibEntry(type);
