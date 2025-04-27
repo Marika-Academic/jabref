@@ -3,6 +3,7 @@ package org.jabref.gui.newentryunified;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
+import java.util.Optional;
 
 import javafx.application.Platform;
 import javafx.beans.value.ChangeListener;
@@ -13,6 +14,7 @@ import javafx.scene.Node;
 import javafx.scene.control.Button;
 import javafx.scene.control.ButtonType;
 import javafx.scene.control.ComboBox;
+import javafx.scene.control.Label;
 import javafx.scene.control.RadioButton;
 import javafx.scene.control.Tab;
 import javafx.scene.control.TabPane;
@@ -30,11 +32,15 @@ import org.jabref.gui.DialogService;
 import org.jabref.gui.LibraryTab;
 import org.jabref.gui.StateManager;
 import org.jabref.gui.preferences.GuiPreferences;
+import org.jabref.gui.search.SearchType;
 import org.jabref.gui.util.BaseDialog;
+import org.jabref.gui.util.ControlHelper;
 import org.jabref.gui.util.IconValidationDecorator;
+import org.jabref.gui.util.UiTaskExecutor;
 import org.jabref.gui.util.ViewModelListCellFactory;
 import org.jabref.logic.importer.IdBasedFetcher;
 import org.jabref.logic.importer.WebFetcher;
+import org.jabref.logic.importer.fetcher.DoiFetcher;
 import org.jabref.logic.l10n.Localization;
 import org.jabref.logic.util.TaskExecutor;
 import org.jabref.model.database.BibDatabaseMode;
@@ -53,17 +59,23 @@ import org.jabref.model.util.FileUpdateMonitor;
 
 import com.airhacks.afterburner.injection.Injector;
 import com.airhacks.afterburner.views.ViewLoader;
+import com.tobiasdiez.easybind.EasyBind;
 import de.saxsys.mvvmfx.utils.validation.visualization.ControlsFxVisualizer;
 import jakarta.inject.Inject;
 
 public class NewEntryUnifiedView extends BaseDialog<BibEntry> {
-    private final NewEntryUnifiedViewModel viewModel;
+
+    private NewEntryUnifiedViewModel viewModel;
 
     private NewEntryUnifiedApproach currentApproach;
 
+    private final GuiPreferences guiPreferences;
+    private final NewEntryUnifiedPreferences preferences;
     private final LibraryTab libraryTab;
     private final DialogService dialogService;
-    private final NewEntryUnifiedPreferences preferences;
+    @Inject private StateManager stateManager;
+    @Inject private TaskExecutor taskExecutor;
+    @Inject private FileUpdateMonitor fileUpdateMonitor;
 
     private final ControlsFxVisualizer visualizer;
 
@@ -87,6 +99,8 @@ public class NewEntryUnifiedView extends BaseDialog<BibEntry> {
     @FXML private RadioButton idLookupGuess;
     @FXML private RadioButton idLookupSpecify;
     @FXML private ComboBox<IdBasedFetcher> idFetcher;
+    @FXML private Label idErrorInvalidText;
+    @FXML private Label idErrorInvalidFetcher;
 
     @FXML private TextArea interpretText;
 
@@ -94,12 +108,11 @@ public class NewEntryUnifiedView extends BaseDialog<BibEntry> {
 
     private BibEntry result;
 
-    public NewEntryUnifiedView(LibraryTab libraryTab, DialogService dialogService, GuiPreferences preferences) {
-        viewModel = new NewEntryUnifiedViewModel(libraryTab, dialogService, preferences);
-
+    public NewEntryUnifiedView(GuiPreferences preferences, LibraryTab libraryTab, DialogService dialogService) {
+        this.guiPreferences = preferences;
+        this.preferences = preferences.getNewEntryUnifiedPreferences();
         this.libraryTab = libraryTab;
         this.dialogService = dialogService;
-        this.preferences = preferences.getNewEntryUnifiedPreferences();
 
         visualizer = new ControlsFxVisualizer();
         this.setTitle(Localization.lang("New Entry"));
@@ -110,7 +123,11 @@ public class NewEntryUnifiedView extends BaseDialog<BibEntry> {
 
         ((Stage)(getDialogPane().getScene().getWindow())).setMinWidth(400);
 
+        ControlHelper.setAction(generateButtonType, getDialogPane(), event -> execute());
+        setOnCloseRequest(e -> cancel());
         setResultConverter(button -> { return result; });
+
+        getDialogPane().disableProperty().bind(viewModel.executingProperty());
 
         finalizeTabs();
         tabs.requestFocus();
@@ -144,7 +161,17 @@ public class NewEntryUnifiedView extends BaseDialog<BibEntry> {
 
     @FXML
     public void initialize() {
+        viewModel = new NewEntryUnifiedViewModel(guiPreferences, libraryTab, dialogService, stateManager, (UiTaskExecutor) taskExecutor, fileUpdateMonitor);
+
         visualizer.setDecoration(new IconValidationDecorator());
+
+        EasyBind.subscribe(
+            viewModel.executedSuccessfullyProperty(),
+            succeeded -> {
+                if (succeeded) {
+                    onSuccessfulExecution();
+                }
+            });
 
         initializeCreateEntry();
         initializeLookupIdentifier();
@@ -190,8 +217,9 @@ public class NewEntryUnifiedView extends BaseDialog<BibEntry> {
     }
 
     private void initializeLookupIdentifier() {
+        idText.textProperty().bindBidirectional(viewModel.idTextProperty());
         final String clipboardText = ClipBoardManager.getContents().trim();
-        if (!StringUtil.isBlank(clipboardText) && !clipboardText.contains("\n")) { // :MYTODO: Better validation?
+        if (!StringUtil.isBlank(clipboardText) && !clipboardText.contains("\n")) {
             idText.setText(clipboardText);
             idText.selectAll();
         }
@@ -216,18 +244,19 @@ public class NewEntryUnifiedView extends BaseDialog<BibEntry> {
         idFetcher.itemsProperty().bind(viewModel.idFetchersProperty());
         new ViewModelListCellFactory<IdBasedFetcher>().withText(WebFetcher::getName).install(idFetcher);
         idFetcher.disableProperty().bind(idLookupSpecify.selectedProperty().not());
-        final String lastFetcherName = preferences.getLatestIdFetcher();
-        IdBasedFetcher lastFetcher = null;
-        for (IdBasedFetcher fetcher : idFetcher.getItems()) {
-            if (fetcher.getName() == lastFetcherName) {
-                lastFetcher = fetcher;
-                break;
-            }
+        idFetcher.valueProperty().bindBidirectional(viewModel.idFetcherProperty());
+        IdBasedFetcher initialFetcher = fetcherFromName(preferences.getLatestIdFetcher(), idFetcher.getItems());
+        if (initialFetcher == null) {
+            final IdBasedFetcher defaultFetcher = new DoiFetcher(guiPreferences.getImportFormatPreferences());
+            initialFetcher = fetcherFromName(defaultFetcher.getName(), idFetcher.getItems());
         }
-        idFetcher.setValue(lastFetcher);
+        idFetcher.setValue(initialFetcher);
         idFetcher.setOnAction(event -> {
             preferences.setLatestIdFetcher(idFetcher.getValue().getName());
             });
+
+        idErrorInvalidText.visibleProperty().bind(viewModel.idTextValidatorProperty().not());
+        idErrorInvalidFetcher.visibleProperty().bind(idLookupSpecify.selectedProperty().and(viewModel.idFetcherValidatorProperty().not()));
     }
 
     private void initializeInterpretCitations() {
@@ -260,6 +289,7 @@ public class NewEntryUnifiedView extends BaseDialog<BibEntry> {
         preferences.setLatestApproach(NewEntryUnifiedApproach.CREATE_ENTRY);
 
         if (generateButton != null) {
+            generateButton.disableProperty().unbind();
             generateButton.setDisable(true);
             generateButton.setText("Select");
         }
@@ -279,7 +309,7 @@ public class NewEntryUnifiedView extends BaseDialog<BibEntry> {
         }
 
         if (generateButton != null) {
-            generateButton.setDisable(false);
+            generateButton.disableProperty().bind(idErrorInvalidText.visibleProperty().or(idErrorInvalidFetcher.visibleProperty()));
             generateButton.setText("Lookup");
         }
     }
@@ -298,6 +328,7 @@ public class NewEntryUnifiedView extends BaseDialog<BibEntry> {
         }
 
         if (generateButton != null) {
+            generateButton.disableProperty().unbind();
             generateButton.setDisable(false);
             generateButton.setText("Interpret");
         }
@@ -317,6 +348,7 @@ public class NewEntryUnifiedView extends BaseDialog<BibEntry> {
         }
 
         if (generateButton != null) {
+            generateButton.disableProperty().unbind();
             generateButton.setDisable(false);
             generateButton.setText("Generate");
         }
@@ -326,6 +358,37 @@ public class NewEntryUnifiedView extends BaseDialog<BibEntry> {
         preferences.setLatestInstantType(type);
         result = new BibEntry(type);
         this.close();
+    }
+
+    private void onSuccessfulExecution() {
+        viewModel.cancelAll();
+        stateManager.activeSearchQuery(SearchType.NORMAL_SEARCH).set(Optional.empty());
+        this.close();
+    }
+
+    private void execute() {
+        switch (currentApproach) {
+            case NewEntryUnifiedApproach.CREATE_ENTRY:
+                // We do nothing here.
+                break;
+            case NewEntryUnifiedApproach.LOOKUP_IDENTIFIER:
+                if (idLookupGuess.isSelected()) {
+                    // :MYTODO:
+                } else {
+                    viewModel.executeLookupIdentifier();
+                }
+                break;
+            case NewEntryUnifiedApproach.INTERPRET_CITATIONS:
+                // :MYTODO:
+                break;
+            case NewEntryUnifiedApproach.SPECIFY_BIBTEX:
+                // :MYTODO:
+                break;
+        }
+    }
+
+    private void cancel() {
+        viewModel.cancelAll();
     }
 
     private void addEntriesToPane(FlowPane pane, Collection<? extends BibEntryType> entries) {
@@ -348,14 +411,14 @@ public class NewEntryUnifiedView extends BaseDialog<BibEntry> {
         }
     }
 
-    public static String descriptionOfEntryType(EntryType type) {
+    private static String descriptionOfEntryType(EntryType type) {
         if (type instanceof StandardEntryType entryType) {
             return descriptionOfStandardEntryType(entryType);
         }
         return null;
     }
 
-    public static String descriptionOfStandardEntryType(StandardEntryType type) {
+    private static String descriptionOfStandardEntryType(StandardEntryType type) {
         // These descriptions are taken from subsection 2.1 of the biblatex package documentation.
         // Biblatex is a superset of bibtex, with more elaborate descriptions, so its documentation is preferred.
         // See [https://mirrors.ibiblio.org/pub/mirrors/CTAN/macros/latex/contrib/biblatex/doc/biblatex.pdf].
@@ -393,5 +456,14 @@ public class NewEntryUnifiedView extends BaseDialog<BibEntry> {
             case Software       -> Localization.lang("Computer software. The standard styles will treat this entry type as an alias for \"Misc\".");
             case Dataset        -> Localization.lang("A data set or a similar collection of (mostly) raw data.");
         };
+    }
+
+    private static IdBasedFetcher fetcherFromName(String fetcherName, List<IdBasedFetcher> fetchers) {
+        for (IdBasedFetcher fetcher : fetchers) {
+            if (fetcher.getName() == fetcherName) {
+                return fetcher;
+            }
+        }
+        return null;
     }
 }

@@ -17,7 +17,7 @@ public class CoreGuiPreferences {
 
     private final DoubleProperty sidePaneWidth;
 
-    private final StringProperty lastSelectedIdBasedFetcher;
+    private final StringProperty lastSelectedIdBasedFetcher; // :MYTODO: Remove.
 
     public CoreGuiPreferences(double positionX,
                               double positionY,

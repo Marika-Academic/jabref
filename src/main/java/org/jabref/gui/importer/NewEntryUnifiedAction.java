@@ -69,7 +69,7 @@ public class NewEntryUnifiedAction extends SimpleCommand {
             newEntry = new BibEntry(type);
         } else {
             // Otherwise, we launch a panel asking the user to specify details of the new entry.
-            NewEntryUnifiedView newEntryDialog = new NewEntryUnifiedView(tabSupplier.get(), dialogService, preferences);
+            NewEntryUnifiedView newEntryDialog = new NewEntryUnifiedView(preferences, tabSupplier.get(), dialogService);
             newEntry = dialogService.showCustomDialogAndWait(newEntryDialog).orElse(null);
         }
 

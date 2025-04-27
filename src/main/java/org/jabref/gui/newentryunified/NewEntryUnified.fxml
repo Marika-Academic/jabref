@@ -78,6 +78,15 @@
                             </ComboBox>
                         </HBox>
                     </VBox>
+                    <VBox spacing="5.0">
+                        <padding><Insets top="5.0"/></padding>
+                        <Label fx:id="idErrorInvalidText" text="%You must provide an identifier!">
+                            <font><Font name="System Italic" size="13.0"/></font>
+                        </Label>
+                        <Label fx:id="idErrorInvalidFetcher" text="%You must select an identifier type!">
+                            <font><Font name="System Italic" size="13.0"/></font>
+                        </Label>
+                    </VBox>
                 </VBox>
             </Tab>
             <Tab fx:id="tabInterpretCitations" text="%Interpret Citations" closable="false">
