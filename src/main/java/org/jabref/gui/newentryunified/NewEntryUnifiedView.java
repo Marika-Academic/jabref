@@ -41,6 +41,7 @@ import org.jabref.gui.util.ViewModelListCellFactory;
 import org.jabref.logic.importer.IdBasedFetcher;
 import org.jabref.logic.importer.WebFetcher;
 import org.jabref.logic.importer.fetcher.DoiFetcher;
+import org.jabref.logic.importer.plaincitation.PlainCitationParserChoice;
 import org.jabref.logic.l10n.Localization;
 import org.jabref.logic.util.TaskExecutor;
 import org.jabref.model.database.BibDatabaseMode;
@@ -103,6 +104,7 @@ public class NewEntryUnifiedView extends BaseDialog<BibEntry> {
     @FXML private Label idErrorInvalidFetcher;
 
     @FXML private TextArea interpretText;
+    @FXML private ComboBox<PlainCitationParserChoice> interpretParser;
 
     @FXML private TextArea bibtexText;
 
@@ -122,6 +124,7 @@ public class NewEntryUnifiedView extends BaseDialog<BibEntry> {
         generateButton.getStyleClass().add("customGenerateButton");
 
         ((Stage)(getDialogPane().getScene().getWindow())).setMinWidth(400);
+        ((Stage)(getDialogPane().getScene().getWindow())).setMinHeight(300);
 
         ControlHelper.setAction(generateButtonType, getDialogPane(), event -> execute());
         setOnCloseRequest(e -> cancel());
@@ -253,7 +256,7 @@ public class NewEntryUnifiedView extends BaseDialog<BibEntry> {
         idFetcher.setValue(initialFetcher);
         idFetcher.setOnAction(event -> {
             preferences.setLatestIdFetcher(idFetcher.getValue().getName());
-            });
+        });
 
         idErrorInvalidText.visibleProperty().bind(viewModel.idTextValidatorProperty().not());
         idErrorInvalidFetcher.visibleProperty().bind(idLookupSpecify.selectedProperty().and(viewModel.idFetcherValidatorProperty().not()));
@@ -261,12 +264,25 @@ public class NewEntryUnifiedView extends BaseDialog<BibEntry> {
 
     private void initializeInterpretCitations() {
         interpretText.setPromptText(Localization.lang("Enter the plain citations to parse, separated by blank lines."));
-
+        interpretText.textProperty().bindBidirectional(viewModel.interpretTextProperty());
         final String clipboardText = ClipBoardManager.getContents().trim();
         if (!StringUtil.isBlank(clipboardText)) {
             interpretText.setText(clipboardText);
             interpretText.selectAll();
         }
+
+        interpretParser.itemsProperty().bind(viewModel.interpretParsersProperty());
+        new ViewModelListCellFactory<PlainCitationParserChoice>().withText(PlainCitationParserChoice::getLocalizedName).install(interpretParser);
+        interpretParser.valueProperty().bindBidirectional(viewModel.interpretParserProperty());
+        PlainCitationParserChoice initialParser = parserFromName(preferences.getLatestInterpretParser(), interpretParser.getItems());
+        if (initialParser == null) {
+            final PlainCitationParserChoice defaultParser = PlainCitationParserChoice.RULE_BASED;
+            initialParser = parserFromName(defaultParser.getLocalizedName(), interpretParser.getItems());
+        }
+        interpretParser.setValue(initialParser);
+        interpretParser.setOnAction(event -> {
+            preferences.setLatestInterpretParser(interpretParser.getValue().getLocalizedName());
+        });
     }
 
     private void initializeSpecifyBibTex() {
@@ -458,6 +474,15 @@ public class NewEntryUnifiedView extends BaseDialog<BibEntry> {
         for (IdBasedFetcher fetcher : fetchers) {
             if (fetcher.getName() == fetcherName) {
                 return fetcher;
+            }
+        }
+        return null;
+    }
+
+    private static PlainCitationParserChoice parserFromName(String parserName, List<PlainCitationParserChoice> parsers) {
+        for (PlainCitationParserChoice parser : parsers) {
+            if (parser.getLocalizedName() == parserName) {
+                return parser;
             }
         }
         return null;

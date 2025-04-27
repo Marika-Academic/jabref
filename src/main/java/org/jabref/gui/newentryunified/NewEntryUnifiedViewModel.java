@@ -27,6 +27,7 @@ import org.jabref.logic.importer.FetcherException;
 import org.jabref.logic.importer.FetcherServerException;
 import org.jabref.logic.importer.IdBasedFetcher;
 import org.jabref.logic.importer.WebFetchers;
+import org.jabref.logic.importer.plaincitation.PlainCitationParserChoice;
 import org.jabref.logic.l10n.Localization;
 import org.jabref.model.entry.BibEntry;
 import org.jabref.model.strings.StringUtil;
@@ -59,6 +60,10 @@ public class NewEntryUnifiedViewModel {
     private final Validator idFetcherValidator;
     private Task<Optional<BibEntry>> idLookupWorker;
 
+    private final StringProperty interpretText;
+    private final ListProperty<PlainCitationParserChoice> interpretParsers;
+    private final ObjectProperty<PlainCitationParserChoice> interpretParser;
+
     public NewEntryUnifiedViewModel(GuiPreferences preferences, LibraryTab libraryTab, DialogService dialogService, StateManager stateManager, UiTaskExecutor taskExecutor, FileUpdateMonitor fileUpdateMonitor) {
         this.preferences = preferences;
         this.libraryTab = libraryTab;
@@ -88,6 +93,13 @@ public class NewEntryUnifiedViewModel {
             ValidationMessage.error(Localization.lang("You must select an identifier type!")));
 
         idLookupWorker = null;
+
+        interpretText = new SimpleStringProperty();
+
+        interpretParsers = new SimpleListProperty<>(FXCollections.observableArrayList());
+        interpretParsers.addAll(PlainCitationParserChoice.values());
+
+        interpretParser = new SimpleObjectProperty<>();
     }
 
     public ReadOnlyBooleanProperty executingProperty() {
@@ -116,6 +128,18 @@ public class NewEntryUnifiedViewModel {
 
     public ReadOnlyBooleanProperty idFetcherValidatorProperty() {
         return idFetcherValidator.getValidationStatus().validProperty();
+    }
+
+    public StringProperty interpretTextProperty() {
+        return interpretText;
+    }
+
+    public ListProperty<PlainCitationParserChoice> interpretParsersProperty() {
+        return interpretParsers;
+    }
+
+    public ObjectProperty<PlainCitationParserChoice> interpretParserProperty() {
+        return interpretParser;
     }
 
     private class IdLookupWorker extends Task<Optional<BibEntry>> {

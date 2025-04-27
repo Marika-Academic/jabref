@@ -8,6 +8,7 @@ import javafx.beans.property.SimpleStringProperty;
 import javafx.beans.property.StringProperty;
 
 import org.jabref.logic.importer.IdBasedFetcher;
+import org.jabref.logic.importer.plaincitation.PlainCitationParserChoice;
 import org.jabref.model.entry.types.EntryType;
 import org.jabref.model.entry.types.StandardEntryType;
 
@@ -16,19 +17,26 @@ public class NewEntryUnifiedPreferences {
     private final ObjectProperty<EntryType> latestInstantType;
     private final BooleanProperty idLookupGuessing;
     private final StringProperty latestIdFetcherName;
+    private final StringProperty latestInterpretParserName;
 
     public NewEntryUnifiedPreferences() {
-        this(NewEntryUnifiedApproach.CREATE_ENTRY, StandardEntryType.Article, true, null);
+        this(NewEntryUnifiedApproach.CREATE_ENTRY,
+        StandardEntryType.Article,
+        true,
+        null,
+        PlainCitationParserChoice.RULE_BASED.getLocalizedName());
     }
 
     public NewEntryUnifiedPreferences(NewEntryUnifiedApproach approach,
                                       EntryType instantType,
                                       boolean idLookupGuessing,
-                                      String idFetcherName) {
+                                      String idFetcherName,
+                                      String interpretParserName) {
         this.latestApproach = new SimpleObjectProperty<>(approach);
         this.latestInstantType = new SimpleObjectProperty<>(instantType);
         this.idLookupGuessing = new SimpleBooleanProperty(idLookupGuessing);
         this.latestIdFetcherName = new SimpleStringProperty(idFetcherName);
+        this.latestInterpretParserName = new SimpleStringProperty(interpretParserName);
     }
 
     public NewEntryUnifiedApproach getLatestApproach() {
@@ -61,5 +69,13 @@ public class NewEntryUnifiedPreferences {
 
     public void setLatestIdFetcher(String idFetcherName) {
         latestIdFetcherName.set(idFetcherName);
+    }
+
+    public String getLatestInterpretParser() {
+        return latestInterpretParserName.get();
+    }
+
+    public void setLatestInterpretParser(String interpretParserName) {
+        latestInterpretParserName.set(interpretParserName);
     }
 }
