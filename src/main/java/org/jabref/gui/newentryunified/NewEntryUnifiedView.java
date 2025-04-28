@@ -38,6 +38,7 @@ import org.jabref.gui.util.ControlHelper;
 import org.jabref.gui.util.IconValidationDecorator;
 import org.jabref.gui.util.UiTaskExecutor;
 import org.jabref.gui.util.ViewModelListCellFactory;
+import org.jabref.logic.ai.AiService;
 import org.jabref.logic.importer.IdBasedFetcher;
 import org.jabref.logic.importer.WebFetcher;
 import org.jabref.logic.importer.fetcher.DoiFetcher;
@@ -65,7 +66,6 @@ import de.saxsys.mvvmfx.utils.validation.visualization.ControlsFxVisualizer;
 import jakarta.inject.Inject;
 
 public class NewEntryUnifiedView extends BaseDialog<BibEntry> {
-
     private NewEntryUnifiedViewModel viewModel;
 
     private NewEntryUnifiedApproach currentApproach;
@@ -76,6 +76,7 @@ public class NewEntryUnifiedView extends BaseDialog<BibEntry> {
     private final DialogService dialogService;
     @Inject private StateManager stateManager;
     @Inject private TaskExecutor taskExecutor;
+    @Inject private AiService aiService;
     @Inject private FileUpdateMonitor fileUpdateMonitor;
 
     private final ControlsFxVisualizer visualizer;
@@ -148,7 +149,7 @@ public class NewEntryUnifiedView extends BaseDialog<BibEntry> {
                 break;
             case NewEntryUnifiedApproach.INTERPRET_CITATIONS:
                 tabs.getSelectionModel().select(tabInterpretCitations);
-                switchInterpretCitation();
+                switchInterpretCitations();
                 break;
             case NewEntryUnifiedApproach.SPECIFY_BIBTEX:
                 tabs.getSelectionModel().select(tabSpecifyBibtex);
@@ -158,13 +159,13 @@ public class NewEntryUnifiedView extends BaseDialog<BibEntry> {
 
         tabCreateEntry.setOnSelectionChanged(event -> switchCreateEntry());
         tabLookupIdentifier.setOnSelectionChanged(event -> switchLookupIdentifier());
-        tabInterpretCitations.setOnSelectionChanged(event -> switchInterpretCitation());
+        tabInterpretCitations.setOnSelectionChanged(event -> switchInterpretCitations());
         tabSpecifyBibtex.setOnSelectionChanged(event -> switchSpecifyBibtex());
     }
 
     @FXML
     public void initialize() {
-        viewModel = new NewEntryUnifiedViewModel(guiPreferences, libraryTab, dialogService, stateManager, (UiTaskExecutor) taskExecutor, fileUpdateMonitor);
+        viewModel = new NewEntryUnifiedViewModel(guiPreferences, libraryTab, dialogService, stateManager, (UiTaskExecutor) taskExecutor, aiService, fileUpdateMonitor);
 
         visualizer.setDecoration(new IconValidationDecorator());
 
@@ -220,6 +221,7 @@ public class NewEntryUnifiedView extends BaseDialog<BibEntry> {
     }
 
     private void initializeLookupIdentifier() {
+        idText.setPromptText(Localization.lang("Enter the reference identifier to search for."));
         idText.textProperty().bindBidirectional(viewModel.idTextProperty());
         final String clipboardText = ClipBoardManager.getContents().trim();
         if (!StringUtil.isBlank(clipboardText) && !clipboardText.contains("\n")) {
@@ -331,7 +333,7 @@ public class NewEntryUnifiedView extends BaseDialog<BibEntry> {
     }
 
     @FXML
-    private void switchInterpretCitation() {
+    private void switchInterpretCitations() {
         if (!tabInterpretCitations.isSelected()) {
             return;
         }
@@ -344,8 +346,7 @@ public class NewEntryUnifiedView extends BaseDialog<BibEntry> {
         }
 
         if (generateButton != null) {
-            generateButton.disableProperty().unbind();
-            generateButton.setDisable(false);
+            generateButton.disableProperty().bind(viewModel.interpretTextValidatorProperty().not());
             generateButton.setText("Interpret");
         }
     }
@@ -377,7 +378,7 @@ public class NewEntryUnifiedView extends BaseDialog<BibEntry> {
     }
 
     private void onSuccessfulExecution() {
-        viewModel.cancelAll();
+        viewModel.cancel();
         stateManager.activeSearchQuery(SearchType.NORMAL_SEARCH).set(Optional.empty());
         this.close();
     }
@@ -388,10 +389,14 @@ public class NewEntryUnifiedView extends BaseDialog<BibEntry> {
                 // We do nothing here.
                 break;
             case NewEntryUnifiedApproach.LOOKUP_IDENTIFIER:
+                generateButton.setText("Searching...");
                 viewModel.executeLookupIdentifier(idLookupGuess.isSelected());
+                switchLookupIdentifier();
                 break;
             case NewEntryUnifiedApproach.INTERPRET_CITATIONS:
-                // :MYTODO:
+                generateButton.setText("Parsing...");
+                viewModel.executeInterpretCitations();
+                switchInterpretCitations();
                 break;
             case NewEntryUnifiedApproach.SPECIFY_BIBTEX:
                 // :MYTODO:
@@ -400,7 +405,7 @@ public class NewEntryUnifiedView extends BaseDialog<BibEntry> {
     }
 
     private void cancel() {
-        viewModel.cancelAll();
+        viewModel.cancel();
     }
 
     private void addEntriesToPane(FlowPane pane, Collection<? extends BibEntryType> entries) {

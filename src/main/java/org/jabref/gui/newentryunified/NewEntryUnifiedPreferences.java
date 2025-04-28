@@ -21,10 +21,10 @@ public class NewEntryUnifiedPreferences {
 
     public NewEntryUnifiedPreferences() {
         this(NewEntryUnifiedApproach.CREATE_ENTRY,
-        StandardEntryType.Article,
-        true,
-        null,
-        PlainCitationParserChoice.RULE_BASED.getLocalizedName());
+             StandardEntryType.Article,
+             true,
+             null,
+             PlainCitationParserChoice.RULE_BASED.getLocalizedName());
     }
 
     public NewEntryUnifiedPreferences(NewEntryUnifiedApproach approach,

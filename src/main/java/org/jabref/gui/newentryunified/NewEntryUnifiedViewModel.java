@@ -2,6 +2,7 @@ package org.jabref.gui.newentryunified;
 
 import java.util.Objects;
 import java.util.Optional;
+import java.util.List;
 
 import javafx.beans.property.BooleanProperty;
 import javafx.beans.property.ListProperty;
@@ -21,13 +22,19 @@ import org.jabref.gui.StateManager;
 import org.jabref.gui.externalfiles.ImportHandler;
 import org.jabref.gui.preferences.GuiPreferences;
 import org.jabref.gui.util.UiTaskExecutor;
+import org.jabref.logic.ai.AiService;
 import org.jabref.logic.importer.CompositeIdFetcher;
 import org.jabref.logic.importer.FetcherClientException;
 import org.jabref.logic.importer.FetcherException;
 import org.jabref.logic.importer.FetcherServerException;
 import org.jabref.logic.importer.IdBasedFetcher;
 import org.jabref.logic.importer.WebFetchers;
+import org.jabref.logic.importer.plaincitation.GrobidPlainCitationParser;
+import org.jabref.logic.importer.plaincitation.LlmPlainCitationParser;
+import org.jabref.logic.importer.plaincitation.PlainCitationParser;
 import org.jabref.logic.importer.plaincitation.PlainCitationParserChoice;
+import org.jabref.logic.importer.plaincitation.RuleBasedPlainCitationParser;
+import org.jabref.logic.importer.plaincitation.SeveralPlainCitationParser;
 import org.jabref.logic.l10n.Localization;
 import org.jabref.model.entry.BibEntry;
 import org.jabref.model.strings.StringUtil;
@@ -48,6 +55,7 @@ public class NewEntryUnifiedViewModel {
     private final DialogService dialogService;
     private final StateManager stateManager;
     private final UiTaskExecutor taskExecutor;
+    private final AiService aiService;
     private final FileUpdateMonitor fileUpdateMonitor;
 
     private final BooleanProperty executing;
@@ -61,45 +69,52 @@ public class NewEntryUnifiedViewModel {
     private Task<Optional<BibEntry>> idLookupWorker;
 
     private final StringProperty interpretText;
+    private final Validator interpretTextValidator;
     private final ListProperty<PlainCitationParserChoice> interpretParsers;
     private final ObjectProperty<PlainCitationParserChoice> interpretParser;
+    private Task<Optional<List<BibEntry>>> interpretWorker;
 
-    public NewEntryUnifiedViewModel(GuiPreferences preferences, LibraryTab libraryTab, DialogService dialogService, StateManager stateManager, UiTaskExecutor taskExecutor, FileUpdateMonitor fileUpdateMonitor) {
+    public NewEntryUnifiedViewModel(GuiPreferences preferences,
+                                    LibraryTab libraryTab,
+                                    DialogService dialogService,
+                                    StateManager stateManager,
+                                    UiTaskExecutor taskExecutor,
+                                    AiService aiService,
+                                    FileUpdateMonitor fileUpdateMonitor) {
         this.preferences = preferences;
         this.libraryTab = libraryTab;
         this.dialogService = dialogService;
         this.stateManager = stateManager;
         this.taskExecutor = taskExecutor;
+        this.aiService = aiService;
         this.fileUpdateMonitor = fileUpdateMonitor;
 
         executing = new SimpleBooleanProperty(false);
         executedSuccessfully = new SimpleBooleanProperty(false);
 
         idText = new SimpleStringProperty();
-
         idTextValidator = new FunctionBasedValidator<>(
             idText,
             StringUtil::isNotBlank,
             ValidationMessage.error(Localization.lang("You must specify an identifier!")));
-
         idFetchers = new SimpleListProperty<>(FXCollections.observableArrayList());
         idFetchers.addAll(WebFetchers.getIdBasedFetchers(preferences.getImportFormatPreferences(), preferences.getImporterPreferences()));
-
         idFetcher = new SimpleObjectProperty<>();
-
         idFetcherValidator = new FunctionBasedValidator<>(
             idFetcher,
             Objects::nonNull,
             ValidationMessage.error(Localization.lang("You must select an identifier type!")));
-
         idLookupWorker = null;
 
         interpretText = new SimpleStringProperty();
-
+        interpretTextValidator = new FunctionBasedValidator<>(
+            interpretText,
+            StringUtil::isNotBlank,
+            ValidationMessage.error(Localization.lang("You must specify one-or-more citations!")));
         interpretParsers = new SimpleListProperty<>(FXCollections.observableArrayList());
         interpretParsers.addAll(PlainCitationParserChoice.values());
-
         interpretParser = new SimpleObjectProperty<>();
+        interpretWorker = null;
     }
 
     public ReadOnlyBooleanProperty executingProperty() {
@@ -134,6 +149,10 @@ public class NewEntryUnifiedViewModel {
         return interpretText;
     }
 
+    public ReadOnlyBooleanProperty interpretTextValidatorProperty() {
+        return interpretTextValidator.getValidationStatus().validProperty();
+    }
+
     public ListProperty<PlainCitationParserChoice> interpretParsersProperty() {
         return interpretParsers;
     }
@@ -142,31 +161,31 @@ public class NewEntryUnifiedViewModel {
         return interpretParser;
     }
 
-    private class IdLookupWorker extends Task<Optional<BibEntry>> {
-        private String text = null;
-        private CompositeIdFetcher fetcher = new CompositeIdFetcher(preferences.getImportFormatPreferences());
-
+    private class WorkerLookupId extends Task<Optional<BibEntry>> {
         @Override
         protected Optional<BibEntry> call() throws FetcherException {
-            text = idText.getValue();
+            final String text = idText.getValue();
+            final CompositeIdFetcher fetcher = new CompositeIdFetcher(preferences.getImportFormatPreferences());
+
             if (text == null || text.isEmpty()) {
                 return Optional.empty();
             }
+
             return fetcher.performSearchById(text);
         }
     }
 
-    private class IdLookupTypedWorker extends Task<Optional<BibEntry>> {
-        private String text = null;
-        private IdBasedFetcher fetcher = null;
-
+    private class WorkerLookupTypedId extends Task<Optional<BibEntry>> {
         @Override
         protected Optional<BibEntry> call() throws FetcherException {
-            text = idText.getValue();
-            fetcher = idFetcher.getValue();
-            if (text == null || fetcher == null || text.isEmpty()) {
+            final String text = idText.getValue();
+            final boolean textValid = idTextValidator.getValidationStatus().isValid();
+            final IdBasedFetcher fetcher = idFetcher.getValue();
+
+            if (text == null || !textValid || fetcher == null) {
                 return Optional.empty();
             }
+
             return fetcher.performSearchById(text);
         }
     }
@@ -174,10 +193,11 @@ public class NewEntryUnifiedViewModel {
     public void executeLookupIdentifier(boolean searchComposite) {
         executing.setValue(true);
 
+        cancel();
         if (searchComposite) {
-            idLookupWorker = new IdLookupWorker();
+            idLookupWorker = new WorkerLookupId();
         } else {
-            idLookupWorker = new IdLookupTypedWorker();
+            idLookupWorker = new WorkerLookupTypedId();
         }
 
         idLookupWorker.setOnFailed(event -> {
@@ -214,30 +234,32 @@ public class NewEntryUnifiedViewModel {
                         exceptionMessage));
             }
 
-            LOGGER.error("An exception occurred with the '{}' fetcher when resolving '{}': '{}'.", idFetcher, idText, exception);
+            LOGGER.error("An exception occurred with the '{}' fetcher when resolving '{}': '{}'.", fetcherName, textString, exception);
 
             executing.set(false);
         });
 
         idLookupWorker.setOnSucceeded(event -> {
             final Optional<BibEntry> result = idLookupWorker.getValue();
-            if (result.isPresent()) {
-                final ImportHandler handler = new ImportHandler(
-                    libraryTab.getBibDatabaseContext(),
-                    preferences,
-                    fileUpdateMonitor,
-                    libraryTab.getUndoManager(),
-                    stateManager,
-                    dialogService,
-                    taskExecutor);
-                handler.importEntryWithDuplicateCheck(libraryTab.getBibDatabaseContext(), result.get());
-            } else {
-                    dialogService.showWarningDialogAndWait(
-                        Localization.lang("Invalid result returned"),
-                        Localization.lang(
-                            "Searching for the provided identifier succeeded, but an invalid result was returned.\n" +
-                            "This entry may need to be added manually."));
+
+            if (!result.isPresent()) {
+                dialogService.showWarningDialogAndWait(
+                    Localization.lang("Invalid result returned"),
+                    Localization.lang(
+                        "An unknown error has occurred.\n" +
+                        "This entry may need to be added manually."));
+                return;
             }
+
+            final ImportHandler handler = new ImportHandler(
+                libraryTab.getBibDatabaseContext(),
+                preferences,
+                fileUpdateMonitor,
+                libraryTab.getUndoManager(),
+                stateManager,
+                dialogService,
+                taskExecutor);
+            handler.importEntryWithDuplicateCheck(libraryTab.getBibDatabaseContext(), result.get());
 
             executedSuccessfully.set(true);
         });
@@ -245,9 +267,97 @@ public class NewEntryUnifiedViewModel {
         taskExecutor.execute(idLookupWorker);
     }
 
-    public void cancelAll() {
+    private class WorkerInterpretCitations extends Task<Optional<List<BibEntry>>> {
+        @Override
+        protected Optional<List<BibEntry>> call() throws FetcherException {
+            final String text = interpretText.getValue();
+            final boolean textValid = interpretTextValidator.getValidationStatus().isValid();
+            final PlainCitationParserChoice parserChoice = interpretParser.getValue();
+
+            if (text == null || !textValid || parserChoice == null) {
+                return Optional.empty();
+            }
+
+            final PlainCitationParser parser = switch (parserChoice) {
+                case PlainCitationParserChoice.RULE_BASED -> new RuleBasedPlainCitationParser();
+                case PlainCitationParserChoice.GROBID     -> new GrobidPlainCitationParser(preferences.getGrobidPreferences(), preferences.getImportFormatPreferences());
+                case PlainCitationParserChoice.LLM        -> new LlmPlainCitationParser(preferences.getImportFormatPreferences(), aiService.getChatLanguageModel());
+            };
+
+            final SeveralPlainCitationParser setParser = new SeveralPlainCitationParser(parser);
+            final List<BibEntry> entries = setParser.parseSeveralPlainCitations(text);
+
+            return Optional.ofNullable(entries);
+        }
+    }
+
+    public void executeInterpretCitations() {
+        executing.setValue(true);
+
+        cancel();
+        interpretWorker = new WorkerInterpretCitations();
+
+        interpretWorker.setOnFailed(event -> {
+            final Throwable exception = interpretWorker.getException();
+            final String exceptionMessage = exception.getMessage();
+            final String parserName = interpretParser.getValue().getLocalizedName();
+
+            final String dialogTitle = Localization.lang("Failed to interpret citations");
+
+            if (exception instanceof FetcherException) {
+                dialogService.showInformationDialogAndWait(
+                    dialogTitle,
+                    Localization.lang(
+                        "Interpreting citations failed.\n" +
+                        "The following error was encountered:\n" +
+                        exceptionMessage));
+            } else {
+                dialogService.showInformationDialogAndWait(
+                    dialogTitle,
+                    Localization.lang(
+                        "The following error occurred:\n" +
+                        exceptionMessage));
+            }
+
+            LOGGER.error("An exception occurred with the '{}' parser: '{}'.", parserName, exception);
+
+            executing.set(false);
+        });
+
+        interpretWorker.setOnSucceeded(event -> {
+            final Optional<List<BibEntry>> result = interpretWorker.getValue();
+
+            if (!result.isPresent()) {
+                dialogService.showWarningDialogAndWait(
+                    Localization.lang("Invalid result returned"),
+                    Localization.lang(
+                        "An unknown error has occurred.\n" +
+                        "This entry may need to be added manually."));
+                return;
+            }
+
+            final ImportHandler handler = new ImportHandler(
+                libraryTab.getBibDatabaseContext(),
+                preferences,
+                fileUpdateMonitor,
+                libraryTab.getUndoManager(),
+                stateManager,
+                dialogService,
+                taskExecutor);
+            handler.importEntriesWithDuplicateCheck(libraryTab.getBibDatabaseContext(), result.get());
+
+            executedSuccessfully.set(true);
+        });
+
+        taskExecutor.execute(interpretWorker);
+    }
+
+    public void cancel() {
         if (idLookupWorker != null) {
             idLookupWorker.cancel();
+        }
+        if (interpretWorker != null) {
+            interpretWorker.cancel();
         }
     }
 }
