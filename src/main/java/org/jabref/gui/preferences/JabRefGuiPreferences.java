@@ -3,6 +3,7 @@ package org.jabref.gui.preferences;
 import java.io.File;
 import java.nio.file.Path;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
@@ -40,6 +41,7 @@ import org.jabref.gui.maintable.MainTablePreferences;
 import org.jabref.gui.maintable.NameDisplayPreferences;
 import org.jabref.gui.mergeentries.DiffMode;
 import org.jabref.gui.mergeentries.MergeDialogPreferences;
+import org.jabref.gui.newentryunified.NewEntryUnifiedApproach;
 import org.jabref.gui.newentryunified.NewEntryUnifiedPreferences;
 import org.jabref.gui.preview.PreviewPreferences;
 import org.jabref.gui.push.PushToApplicationPreferences;
@@ -55,6 +57,7 @@ import org.jabref.logic.exporter.SelfContainedSaveConfiguration;
 import org.jabref.logic.externalfiles.DateRange;
 import org.jabref.logic.externalfiles.ExternalFileSorter;
 import org.jabref.logic.importer.fetcher.DoiFetcher;
+import org.jabref.logic.importer.plaincitation.PlainCitationParserChoice;
 import org.jabref.logic.journals.JournalAbbreviationRepository;
 import org.jabref.logic.l10n.Localization;
 import org.jabref.logic.layout.TextBasedPreviewLayout;
@@ -67,6 +70,8 @@ import org.jabref.logic.util.StandardFileType;
 import org.jabref.model.entry.BibEntryTypesManager;
 import org.jabref.model.entry.field.Field;
 import org.jabref.model.entry.field.FieldFactory;
+import org.jabref.model.entry.types.EntryType;
+import org.jabref.model.entry.types.StandardEntryType;
 import org.jabref.model.groups.GroupHierarchyType;
 import org.jabref.model.metadata.SaveOrder;
 import org.jabref.model.metadata.SelfContainedSaveOrder;
@@ -218,6 +223,14 @@ public class JabRefGuiPreferences extends JabRefCliPreferences implements GuiPre
 
     private static final String INCLUDE_CROSS_REFERENCES = "includeCrossReferences";
     private static final String ASK_FOR_INCLUDING_CROSS_REFERENCES = "askForIncludingCrossReferences";
+
+    // region NewEntryUnifiedPreferences
+    private static final String NEU_APPROACH = "latestApproach";
+    private static final String NEU_INSTANT_TYPE = "latestInstantType";
+    private static final String NEU_ID_LOOKUP_GUESSING = "idLookupGuessing";
+    private static final String NEU_ID_FETCHER_NAME = "latestIdFetcherName";
+    private static final String NEU_INTERPRET_PARSER_NAME = "latestInterpretParserName";
+    // endregion
 
     private static JabRefGuiPreferences singleton;
 
@@ -406,6 +419,14 @@ public class JabRefGuiPreferences extends JabRefCliPreferences implements GuiPre
 
         defaults.put(ASK_FOR_INCLUDING_CROSS_REFERENCES, Boolean.TRUE);
         defaults.put(INCLUDE_CROSS_REFERENCES, Boolean.FALSE);
+
+        // region NewEntryUnifierPreferences
+        defaults.put(NEU_APPROACH, Arrays.asList(NewEntryUnifiedApproach.values()).indexOf(NewEntryUnifiedApproach.CREATE_ENTRY));
+        defaults.put(NEU_INSTANT_TYPE, StandardEntryType.Article.getDisplayName());
+        defaults.put(NEU_ID_LOOKUP_GUESSING, true);
+        defaults.put(NEU_ID_FETCHER_NAME, DoiFetcher.NAME);
+        defaults.put(NEU_INTERPRET_PARSER_NAME, PlainCitationParserChoice.RULE_BASED.getLocalizedName());
+        // endregion
     }
 
     /**
@@ -1236,9 +1257,37 @@ public class JabRefGuiPreferences extends JabRefCliPreferences implements GuiPre
 
     @Override
     public NewEntryUnifiedPreferences getNewEntryUnifiedPreferences() {
-        if (newEntryUnifiedPreferences == null) {
-            newEntryUnifiedPreferences = new NewEntryUnifiedPreferences();
+        if (newEntryUnifiedPreferences != null) {
+            return newEntryUnifiedPreferences;
         }
+
+        final int approachIndex = getInt(NEU_APPROACH);
+        NewEntryUnifiedApproach approach = NewEntryUnifiedApproach.values().length > approachIndex
+            ? NewEntryUnifiedApproach.values()[approachIndex]
+            : NewEntryUnifiedApproach.values()[0];
+
+        final String instantTypeName = get(NEU_INSTANT_TYPE);
+        EntryType instantType = StandardEntryType.Article;
+        for (StandardEntryType type : StandardEntryType.values()) {
+            if (type.getDisplayName().equals(instantTypeName)) {
+                instantType = type;
+                break;
+            }
+        }
+
+        newEntryUnifiedPreferences = new NewEntryUnifiedPreferences(
+            approach,
+            instantType,
+            getBoolean(NEU_ID_LOOKUP_GUESSING),
+            get(NEU_ID_FETCHER_NAME),
+            get(NEU_INTERPRET_PARSER_NAME));
+
+        EasyBind.listen(newEntryUnifiedPreferences.latestApproachProperty(), (obs, oldValue, newValue) -> putInt(NEU_APPROACH, Arrays.asList(NewEntryUnifiedApproach.values()).indexOf(newValue)));
+        EasyBind.listen(newEntryUnifiedPreferences.latestInstantTypeProperty(), (obs, oldValue, newValue) -> put(NEU_INSTANT_TYPE, newValue.getDisplayName()));
+        EasyBind.listen(newEntryUnifiedPreferences.idLookupGuessingProperty(), (obs, oldValue, newValue) -> putBoolean(NEU_ID_LOOKUP_GUESSING, newValue));
+        EasyBind.listen(newEntryUnifiedPreferences.latestIdFetcherProperty(), (obs, oldValue, newValue) -> put(NEU_ID_FETCHER_NAME, newValue));
+        EasyBind.listen(newEntryUnifiedPreferences.latestInterpretParserProperty(), (obs, oldValue, newValue) -> put(NEU_INTERPRET_PARSER_NAME, newValue));
+
         return newEntryUnifiedPreferences;
     }
 

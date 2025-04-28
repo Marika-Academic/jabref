@@ -481,7 +481,7 @@ public class NewEntryUnifiedView extends BaseDialog<BibEntry> {
 
     private static IdBasedFetcher fetcherFromName(String fetcherName, List<IdBasedFetcher> fetchers) {
         for (IdBasedFetcher fetcher : fetchers) {
-            if (fetcher.getName() == fetcherName) {
+            if (fetcher.getName().equals(fetcherName)) {
                 return fetcher;
             }
         }
@@ -490,7 +490,7 @@ public class NewEntryUnifiedView extends BaseDialog<BibEntry> {
 
     private static PlainCitationParserChoice parserFromName(String parserName, List<PlainCitationParserChoice> parsers) {
         for (PlainCitationParserChoice parser : parsers) {
-            if (parser.getLocalizedName() == parserName) {
+            if (parser.getLocalizedName().equals(parserName)) {
                 return parser;
             }
         }

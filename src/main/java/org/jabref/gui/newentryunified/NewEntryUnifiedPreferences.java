@@ -19,14 +19,6 @@ public class NewEntryUnifiedPreferences {
     private final StringProperty latestIdFetcherName;
     private final StringProperty latestInterpretParserName;
 
-    public NewEntryUnifiedPreferences() {
-        this(NewEntryUnifiedApproach.CREATE_ENTRY,
-             StandardEntryType.Article,
-             true,
-             null,
-             PlainCitationParserChoice.RULE_BASED.getLocalizedName());
-    }
-
     public NewEntryUnifiedPreferences(NewEntryUnifiedApproach approach,
                                       EntryType instantType,
                                       boolean idLookupGuessing,
@@ -47,12 +39,20 @@ public class NewEntryUnifiedPreferences {
         latestApproach.set(approach);
     }
 
+    public ObjectProperty<NewEntryUnifiedApproach> latestApproachProperty() {
+        return latestApproach;
+    }
+
     public EntryType getLatestInstantType() {
         return latestInstantType.get();
     }
 
     public void setLatestInstantType(EntryType type) {
         latestInstantType.set(type);
+    }
+
+    public ObjectProperty<EntryType> latestInstantTypeProperty() {
+        return latestInstantType;
     }
 
     public boolean getIdLookupGuessing() {
@@ -63,6 +63,10 @@ public class NewEntryUnifiedPreferences {
         idLookupGuessing.set(guessing);
     }
 
+    public BooleanProperty idLookupGuessingProperty() {
+        return idLookupGuessing;
+    }
+
     public String getLatestIdFetcher() {
         return latestIdFetcherName.get();
     }
@@ -71,11 +75,19 @@ public class NewEntryUnifiedPreferences {
         latestIdFetcherName.set(idFetcherName);
     }
 
+    public StringProperty latestIdFetcherProperty() {
+        return latestIdFetcherName;
+    }
+
     public String getLatestInterpretParser() {
         return latestInterpretParserName.get();
     }
 
     public void setLatestInterpretParser(String interpretParserName) {
         latestInterpretParserName.set(interpretParserName);
+    }
+
+    public StringProperty latestInterpretParserProperty() {
+        return latestInterpretParserName;
     }
 }

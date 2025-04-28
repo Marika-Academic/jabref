@@ -42,7 +42,7 @@
                             <FlowPane fx:id="entryCustom"/>
                         </content>
                     </TitledPane>
-                    <Label text="%The selected entry type will be used by 'add empty entry' quick-action in the toolbar.">
+                    <Label text="%The 'add empty entry' toolbar quick-action uses the last-selected entry type from this menu.">
                         <font><Font name="System Italic" size="13.0"/></font>
                     </Label>
                 </VBox>
