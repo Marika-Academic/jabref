@@ -1,8 +1,9 @@
 package org.jabref.gui.newentryunified;
 
+import java.io.InputStream;
+import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
-import java.util.List;
 
 import javafx.beans.property.BooleanProperty;
 import javafx.beans.property.ListProperty;
@@ -28,7 +29,9 @@ import org.jabref.logic.importer.FetcherClientException;
 import org.jabref.logic.importer.FetcherException;
 import org.jabref.logic.importer.FetcherServerException;
 import org.jabref.logic.importer.IdBasedFetcher;
+import org.jabref.logic.importer.ParseException;
 import org.jabref.logic.importer.WebFetchers;
+import org.jabref.logic.importer.fileformat.BibtexParser;
 import org.jabref.logic.importer.plaincitation.GrobidPlainCitationParser;
 import org.jabref.logic.importer.plaincitation.LlmPlainCitationParser;
 import org.jabref.logic.importer.plaincitation.PlainCitationParser;
@@ -74,6 +77,10 @@ public class NewEntryUnifiedViewModel {
     private final ObjectProperty<PlainCitationParserChoice> interpretParser;
     private Task<Optional<List<BibEntry>>> interpretWorker;
 
+    private final StringProperty bibtexText;
+    private final Validator bibtexTextValidator;
+    private Task<Optional<List<BibEntry>>> bibtexWorker;
+
     public NewEntryUnifiedViewModel(GuiPreferences preferences,
                                     LibraryTab libraryTab,
                                     DialogService dialogService,
@@ -110,11 +117,18 @@ public class NewEntryUnifiedViewModel {
         interpretTextValidator = new FunctionBasedValidator<>(
             interpretText,
             StringUtil::isNotBlank,
-            ValidationMessage.error(Localization.lang("You must specify one-or-more citations!")));
+            ValidationMessage.error(Localization.lang("You must specify one (or more) citations!")));
         interpretParsers = new SimpleListProperty<>(FXCollections.observableArrayList());
         interpretParsers.addAll(PlainCitationParserChoice.values());
         interpretParser = new SimpleObjectProperty<>();
         interpretWorker = null;
+
+        bibtexText = new SimpleStringProperty();
+        bibtexTextValidator = new FunctionBasedValidator<>(
+            bibtexText,
+            StringUtil::isNotBlank,
+            ValidationMessage.error(Localization.lang("You must specify a Bib(La)TeX source!")));
+        bibtexWorker = null;
     }
 
     public ReadOnlyBooleanProperty executingProperty() {
@@ -159,6 +173,14 @@ public class NewEntryUnifiedViewModel {
 
     public ObjectProperty<PlainCitationParserChoice> interpretParserProperty() {
         return interpretParser;
+    }
+
+    public StringProperty bibtexTextProperty() {
+        return bibtexText;
+    }
+
+    public ReadOnlyBooleanProperty bibtexTextValidatorProperty() {
+        return bibtexTextValidator.getValidationStatus().validProperty();
     }
 
     private class WorkerLookupId extends Task<Optional<BibEntry>> {
@@ -287,7 +309,10 @@ public class NewEntryUnifiedViewModel {
             final SeveralPlainCitationParser setParser = new SeveralPlainCitationParser(parser);
             final List<BibEntry> entries = setParser.parseSeveralPlainCitations(text);
 
-            return Optional.ofNullable(entries);
+            if (entries.isEmpty()) {
+                return Optional.empty();
+            }
+            return Optional.of(entries);
         }
     }
 
@@ -308,7 +333,7 @@ public class NewEntryUnifiedViewModel {
                 dialogService.showInformationDialogAndWait(
                     dialogTitle,
                     Localization.lang(
-                        "Interpreting citations failed.\n" +
+                        "Failed to interpret citations.\n" +
                         "The following error was encountered:\n" +
                         exceptionMessage));
             } else {
@@ -329,10 +354,11 @@ public class NewEntryUnifiedViewModel {
 
             if (!result.isPresent()) {
                 dialogService.showWarningDialogAndWait(
-                    Localization.lang("Invalid result returned"),
+                    Localization.lang("Invalid result"),
                     Localization.lang(
                         "An unknown error has occurred.\n" +
-                        "This entry may need to be added manually."));
+                        "Entries may need to be added manually."));
+                LOGGER.error("An invalid result was returned when parsing citations.");
                 return;
             }
 
@@ -352,12 +378,96 @@ public class NewEntryUnifiedViewModel {
         taskExecutor.execute(interpretWorker);
     }
 
+    private class WorkerSpecifyBibtex extends Task<Optional<List<BibEntry>>> {
+        @Override
+        protected Optional<List<BibEntry>> call() throws ParseException {
+            final String text = bibtexText.getValue();
+            final boolean textValid = bibtexTextValidator.getValidationStatus().isValid();
+
+            if (text == null || !textValid) {
+                return Optional.empty();
+            }
+
+            final BibtexParser parser = new BibtexParser(preferences.getImportFormatPreferences());
+            final List<BibEntry> entries = parser.parseEntries(text);
+
+            if (entries.isEmpty()) {
+                return Optional.empty();
+            }
+            return Optional.of(entries);
+        }
+    }
+
+    public void executeSpecifyBibtex() {
+        executing.setValue(true);
+
+        cancel();
+        bibtexWorker = new WorkerSpecifyBibtex();
+
+        bibtexWorker.setOnFailed(event -> {
+            final Throwable exception = interpretWorker.getException();
+            final String exceptionMessage = exception.getMessage();
+
+            final String dialogTitle = Localization.lang("Failed to parse Bib(La)Tex");
+
+            if (exception instanceof ParseException) {
+                dialogService.showInformationDialogAndWait(
+                    dialogTitle,
+                    Localization.lang(
+                        "Failed to parse entries.\n" +
+                        "The following error was encountered:\n" +
+                        exceptionMessage));
+            } else {
+                dialogService.showInformationDialogAndWait(
+                    dialogTitle,
+                    Localization.lang(
+                        "The following error occurred:\n" +
+                        exceptionMessage));
+            }
+
+            LOGGER.error("An exception occurred when parsing Bib(La)Tex entries: '{}'.", exception);
+
+            executing.set(false);
+        });
+
+        bibtexWorker.setOnSucceeded(event -> {
+            final Optional<List<BibEntry>> result = bibtexWorker.getValue();
+
+            if (!result.isPresent()) {
+                dialogService.showWarningDialogAndWait(
+                    Localization.lang("Invalid result"),
+                    Localization.lang(
+                        "An unknown error has occurred.\n" +
+                        "Entries may need to be added manually."));
+                LOGGER.error("An invalid result was returned when parsing Bib(La)Tex entries.");
+                return;
+            }
+
+            final ImportHandler handler = new ImportHandler(
+                libraryTab.getBibDatabaseContext(),
+                preferences,
+                fileUpdateMonitor,
+                libraryTab.getUndoManager(),
+                stateManager,
+                dialogService,
+                taskExecutor);
+            handler.importEntriesWithDuplicateCheck(libraryTab.getBibDatabaseContext(), result.get());
+
+            executedSuccessfully.set(true);
+        });
+
+        taskExecutor.execute(bibtexWorker);
+    }
+
     public void cancel() {
         if (idLookupWorker != null) {
             idLookupWorker.cancel();
         }
         if (interpretWorker != null) {
             interpretWorker.cancel();
+        }
+        if (bibtexWorker != null) {
+            bibtexWorker.cancel();
         }
     }
 }

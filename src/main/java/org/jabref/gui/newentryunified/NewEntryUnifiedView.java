@@ -288,10 +288,10 @@ public class NewEntryUnifiedView extends BaseDialog<BibEntry> {
     }
 
     private void initializeSpecifyBibTex() {
-        bibtexText.setPromptText(Localization.lang("Enter the BibTeX source to generate an entry from."));
-
+        bibtexText.setPromptText(Localization.lang("Enter the Bib(La)TeX sources to generate entries from."));
+        bibtexText.textProperty().bindBidirectional(viewModel.bibtexTextProperty());
         final String clipboardText = ClipBoardManager.getContents().trim();
-        if (!StringUtil.isBlank(clipboardText)) { // :MYTODO: Validation and automatic formatting.
+        if (!StringUtil.isBlank(clipboardText)) {
             bibtexText.setText(clipboardText);
             bibtexText.selectAll();
         }
@@ -365,8 +365,7 @@ public class NewEntryUnifiedView extends BaseDialog<BibEntry> {
         }
 
         if (generateButton != null) {
-            generateButton.disableProperty().unbind();
-            generateButton.setDisable(false);
+            generateButton.disableProperty().bind(viewModel.bibtexTextValidatorProperty().not());
             generateButton.setText("Generate");
         }
     }
@@ -384,6 +383,9 @@ public class NewEntryUnifiedView extends BaseDialog<BibEntry> {
     }
 
     private void execute() {
+        // :TODO: These button text changes aren't actually visible, due to the UI thread not being able to perform the
+        // update before the button text is reset. The `viewModel.execute*()` and `switch*()` calls could be wrapped in
+        // a `Platform.runLater(...)` which would probably fix this.
         switch (currentApproach) {
             case NewEntryUnifiedApproach.CREATE_ENTRY:
                 // We do nothing here.
@@ -399,7 +401,9 @@ public class NewEntryUnifiedView extends BaseDialog<BibEntry> {
                 switchInterpretCitations();
                 break;
             case NewEntryUnifiedApproach.SPECIFY_BIBTEX:
-                // :MYTODO:
+                generateButton.setText("Parsing...");
+                viewModel.executeSpecifyBibtex();
+                switchSpecifyBibtex();
                 break;
         }
     }
