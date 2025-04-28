@@ -17,21 +17,17 @@ public class CoreGuiPreferences {
 
     private final DoubleProperty sidePaneWidth;
 
-    private final StringProperty lastSelectedIdBasedFetcher; // :MYTODO: Remove.
-
     public CoreGuiPreferences(double positionX,
                               double positionY,
                               double sizeX,
                               double sizeY,
                               boolean windowMaximised,
-                              String lastSelectedIdBasedFetcher,
                               double sidePaneWidth) {
         this.positionX = new SimpleDoubleProperty(positionX);
         this.positionY = new SimpleDoubleProperty(positionY);
         this.sizeX = new SimpleDoubleProperty(sizeX);
         this.sizeY = new SimpleDoubleProperty(sizeY);
         this.windowMaximised = new SimpleBooleanProperty(windowMaximised);
-        this.lastSelectedIdBasedFetcher = new SimpleStringProperty(lastSelectedIdBasedFetcher);
         this.sidePaneWidth = new SimpleDoubleProperty(sidePaneWidth);
     }
 
@@ -93,18 +89,6 @@ public class CoreGuiPreferences {
 
     public void setWindowMaximised(boolean windowMaximised) {
         this.windowMaximised.set(windowMaximised);
-    }
-
-    public String getLastSelectedIdBasedFetcher() {
-        return lastSelectedIdBasedFetcher.get();
-    }
-
-    public StringProperty lastSelectedIdBasedFetcherProperty() {
-        return lastSelectedIdBasedFetcher;
-    }
-
-    public void setLastSelectedIdBasedFetcher(String lastSelectedIdBasedFetcher) {
-        this.lastSelectedIdBasedFetcher.set(lastSelectedIdBasedFetcher);
     }
 
     public double getSidePaneWidth() {

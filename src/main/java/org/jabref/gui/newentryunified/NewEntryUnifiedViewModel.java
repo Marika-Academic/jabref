@@ -237,6 +237,7 @@ public class NewEntryUnifiedViewModel {
                         "Bibliographic data could not be retrieved.\n" +
                         "This is likely due to an issue with your input, or your network connection.\n" +
                         "Check your provided identifier (and identifier type), and try again.\n" +
+                        "%0",
                         exceptionMessage));
             } else if (exception instanceof FetcherServerException) {
                 dialogService.showInformationDialogAndWait(
@@ -245,6 +246,7 @@ public class NewEntryUnifiedViewModel {
                         "Bibliographic data could not be retrieved.\n" +
                         "This is likely due to an issue being experienced by the server.\n" +
                         "Try again later.\n" +
+                        "%0",
                         exceptionMessage));
             } else {
                 dialogService.showInformationDialogAndWait(
@@ -335,12 +337,14 @@ public class NewEntryUnifiedViewModel {
                     Localization.lang(
                         "Failed to interpret citations.\n" +
                         "The following error was encountered:\n" +
+                        "%0",
                         exceptionMessage));
             } else {
                 dialogService.showInformationDialogAndWait(
                     dialogTitle,
                     Localization.lang(
                         "The following error occurred:\n" +
+                        "%0",
                         exceptionMessage));
             }
 
@@ -416,12 +420,14 @@ public class NewEntryUnifiedViewModel {
                     Localization.lang(
                         "Failed to parse entries.\n" +
                         "The following error was encountered:\n" +
+                        "%0",
                         exceptionMessage));
             } else {
                 dialogService.showInformationDialogAndWait(
                     dialogTitle,
                     Localization.lang(
                         "The following error occurred:\n" +
+                        "%0",
                         exceptionMessage));
             }
 

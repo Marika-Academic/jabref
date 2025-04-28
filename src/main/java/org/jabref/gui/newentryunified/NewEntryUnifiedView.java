@@ -68,6 +68,7 @@ import jakarta.inject.Inject;
 public class NewEntryUnifiedView extends BaseDialog<BibEntry> {
     private NewEntryUnifiedViewModel viewModel;
 
+    private final NewEntryUnifiedApproach initialApproach;
     private NewEntryUnifiedApproach currentApproach;
 
     private final GuiPreferences guiPreferences;
@@ -111,7 +112,10 @@ public class NewEntryUnifiedView extends BaseDialog<BibEntry> {
 
     private BibEntry result;
 
-    public NewEntryUnifiedView(GuiPreferences preferences, LibraryTab libraryTab, DialogService dialogService) {
+    public NewEntryUnifiedView(NewEntryUnifiedApproach initialApproach, GuiPreferences preferences, LibraryTab libraryTab, DialogService dialogService) {
+        this.initialApproach = initialApproach;
+        this.currentApproach = initialApproach;
+
         this.guiPreferences = preferences;
         this.preferences = preferences.getNewEntryUnifiedPreferences();
         this.libraryTab = libraryTab;
@@ -138,7 +142,12 @@ public class NewEntryUnifiedView extends BaseDialog<BibEntry> {
     }
 
     private void finalizeTabs() {
-        switch (preferences.getLatestApproach()) {
+        NewEntryUnifiedApproach approach = initialApproach;
+        if (approach == null) {
+            approach = preferences.getLatestApproach();
+        }
+
+        switch (approach) {
             case NewEntryUnifiedApproach.CREATE_ENTRY:
                 tabs.getSelectionModel().select(tabCreateEntry);
                 switchCreateEntry();

@@ -215,7 +215,6 @@ public class JabRefGuiPreferences extends JabRefCliPreferences implements GuiPre
     private static final String SPECIALFIELDSENABLED = "specialFieldsEnabled";
     // endregion
 
-    private static final String ID_ENTRY_GENERATOR = "idEntryGenerator";
     private static final String SELECTED_SLR_CATALOGS = "selectedSlrCatalogs";
     private static final String UNLINKED_FILES_SELECTED_EXTENSION = "unlinkedFilesSelectedExtension";
     private static final String UNLINKED_FILES_SELECTED_DATE_RANGE = "unlinkedFilesSelectedDateRange";
@@ -407,7 +406,6 @@ public class JabRefGuiPreferences extends JabRefCliPreferences implements GuiPre
 
         // region core GUI preferences
         // Set DOI to be the default ID entry generator
-        defaults.put(ID_ENTRY_GENERATOR, DoiFetcher.NAME);
         defaults.put(MAIN_WINDOW_POS_X, 0);
         defaults.put(MAIN_WINDOW_POS_Y, 0);
         defaults.put(MAIN_WINDOW_WIDTH, 1024);
@@ -647,7 +645,6 @@ public class JabRefGuiPreferences extends JabRefCliPreferences implements GuiPre
                 getDouble(MAIN_WINDOW_WIDTH),
                 getDouble(MAIN_WINDOW_HEIGHT),
                 getBoolean(WINDOW_MAXIMISED),
-                get(ID_ENTRY_GENERATOR),
                 getDouble(SIDE_PANE_WIDTH));
 
         EasyBind.listen(coreGuiPreferences.positionXProperty(), (obs, oldValue, newValue) -> putDouble(MAIN_WINDOW_POS_X, newValue.doubleValue()));
@@ -656,8 +653,6 @@ public class JabRefGuiPreferences extends JabRefCliPreferences implements GuiPre
         EasyBind.listen(coreGuiPreferences.sizeYProperty(), (obs, oldValue, newValue) -> putDouble(MAIN_WINDOW_HEIGHT, newValue.doubleValue()));
         EasyBind.listen(coreGuiPreferences.windowMaximisedProperty(), (obs, oldValue, newValue) -> putBoolean(WINDOW_MAXIMISED, newValue));
         EasyBind.listen(coreGuiPreferences.sidePaneWidthProperty(), (obs, oldValue, newValue) -> putDouble(SIDE_PANE_WIDTH, newValue.doubleValue()));
-
-        EasyBind.listen(coreGuiPreferences.lastSelectedIdBasedFetcherProperty(), (obs, oldValue, newValue) -> put(ID_ENTRY_GENERATOR, newValue));
 
         return coreGuiPreferences;
     }
